@@ -14,7 +14,8 @@ http://localhost:3000
 
 ## 本番デプロイ
 
-- [Vercel デプロイ手順](docs/VERCEL_DEPLOYMENT.md)
+- [Vercel クイックスタート（テスト公開）](docs/VERCEL_QUICKSTART.md)
+- [Vercel デプロイ手順（詳細）](docs/VERCEL_DEPLOYMENT.md)
 - [Stripe ダッシュボード作業](docs/STRIPE_DASHBOARD_TASKS.md)
 - [本番セットアップ](docs/PRODUCTION_SETUP.md)
 
