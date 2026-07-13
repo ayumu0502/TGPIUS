@@ -1,0 +1,208 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { translateAuthError } from "@/lib/auth/errors";
+import {
+  getAccountTypeFromMetadata,
+  getDashboardPath,
+} from "@/lib/auth/routes";
+import {
+  parseAccountType,
+  validateLoginInput,
+  validateRegistrationInput,
+} from "@/lib/auth/validation";
+import { createClient } from "@/lib/supabase/server";
+import type { AccountType, AuthFormState, Profile } from "@/types/auth";
+
+async function saveProfile(
+  userId: string,
+  name: string,
+  email: string,
+  accountType: AccountType
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("profiles").upsert(
+    {
+      id: userId,
+      name,
+      email,
+      account_type: accountType,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
+
+  return error;
+}
+
+export async function register(
+  _prevState: AuthFormState | null,
+  formData: FormData
+): Promise<AuthFormState> {
+  const name = String(formData.get("name") ?? "");
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const accountTypeValue = String(formData.get("accountType") ?? "fan");
+
+  const validationError = validateRegistrationInput({
+    name,
+    email,
+    password,
+    accountType: accountTypeValue,
+  });
+
+  if (validationError) {
+    return validationError;
+  }
+
+  const accountType = parseAccountType(accountTypeValue);
+
+  if (!accountType) {
+    return {
+      fieldErrors: { accountType: "アカウントタイプを選択してください" },
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: name.trim(),
+        account_type: accountType,
+      },
+    },
+  });
+
+  if (error) {
+    return { error: translateAuthError(error.message) };
+  }
+
+  if (!data.user) {
+    return { error: "アカウントの作成に失敗しました。もう一度お試しください" };
+  }
+
+  if (data.session) {
+    const profileError = await saveProfile(
+      data.user.id,
+      name.trim(),
+      email,
+      accountType
+    );
+
+    if (profileError) {
+      return { error: translateAuthError(profileError.message) };
+    }
+
+    redirect(getDashboardPath(accountType));
+  }
+
+  return {
+    success:
+      "確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。",
+  };
+}
+
+export async function login(
+  _prevState: AuthFormState | null,
+  formData: FormData
+): Promise<AuthFormState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const redirectTo = String(formData.get("redirectTo") ?? "");
+
+  const validationError = validateLoginInput({ email, password });
+
+  if (validationError) {
+    return validationError;
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: translateAuthError(error.message) };
+  }
+
+  const accountType = getAccountTypeFromMetadata(data.user.user_metadata);
+
+  if (!accountType) {
+    return {
+      error:
+        "アカウント情報が見つかりません。管理者にお問い合わせください",
+    };
+  }
+
+  if (
+    redirectTo.startsWith(`/${accountType}/`) &&
+    !redirectTo.startsWith("//")
+  ) {
+    redirect(redirectTo);
+  }
+
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", data.user.id)
+    .single();
+
+  if (profileRow?.is_admin) {
+    redirect("/admin/dashboard");
+  }
+
+  redirect(getDashboardPath(accountType));
+}
+
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
+
+export async function getCurrentProfile(): Promise<Profile | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(
+      "id, name, email, account_type, created_at, updated_at, is_admin, is_suspended"
+    )
+    .eq("id", user.id)
+    .single();
+
+  if (profile) {
+    return profile;
+  }
+
+  const accountType = getAccountTypeFromMetadata(user.user_metadata);
+
+  if (!accountType) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: String(user.user_metadata.name ?? ""),
+    email: user.email ?? "",
+    account_type: accountType,
+    created_at: user.created_at,
+    updated_at: user.updated_at ?? user.created_at,
+    is_admin: false,
+    is_suspended: false,
+  };
+}

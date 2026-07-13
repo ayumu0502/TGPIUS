@@ -1,0 +1,36 @@
+{
+  "name": "TGPLUS",
+  "short_name": "TGPLUS",
+  "description": "アスリート・ファン・企業をつなぐスポーツ応援プラットフォーム",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#c5a059",
+  "lang": "ja",
+  "dir": "ltr",
+  "categories": ["sports", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
