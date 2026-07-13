@@ -1,3 +1,4 @@
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -55,6 +56,62 @@ async function syncPaymentFromSession(
   }
 
   await supabase.from("payments").update(payload).eq("id", paymentId);
+}
+
+async function createUserScopedClient(userId: string): Promise<SupabaseClient> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("SUPABASE_ANON_NOT_CONFIGURED");
+  }
+
+  const service = createServiceClient();
+  const { data: profile, error: profileError } = await service
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError || !profile?.email) {
+    throw new Error("USER_EMAIL_NOT_FOUND");
+  }
+
+  const { data: linkData, error: linkError } =
+    await service.auth.admin.generateLink({
+      type: "magiclink",
+      email: profile.email,
+    });
+
+  if (linkError) {
+    throw new Error(`ADMIN_LINK_FAILED: ${linkError.message}`);
+  }
+
+  const tokenHash = linkData.properties?.hashed_token;
+  if (!tokenHash) {
+    throw new Error("ADMIN_LINK_TOKEN_MISSING");
+  }
+
+  const authClient = createSupabaseClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: authData, error: verifyError } = await authClient.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "email",
+  });
+
+  if (verifyError || !authData.session?.access_token) {
+    throw new Error(`USER_SESSION_FAILED: ${verifyError?.message ?? "no session"}`);
+  }
+
+  return createSupabaseClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${authData.session.access_token}`,
+      },
+    },
+  });
 }
 
 async function fulfillStripePaymentRecordForUser(
@@ -130,6 +187,26 @@ export async function fulfillStripePaymentRecord(
 
   if (error) {
     if (isBrokenFulfillRpcError(error.message)) {
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("user_id")
+        .eq("id", paymentId)
+        .maybeSingle();
+
+      if (payment?.user_id) {
+        logWebhook("service RPC broken, retrying with user RPC fallback", {
+          payment_id: paymentId,
+        });
+        const userClient = await createUserScopedClient(payment.user_id);
+        return fulfillStripePaymentRecordForUser(
+          paymentId,
+          userClient,
+          session
+        );
+      }
+    }
+
+    if (isBrokenFulfillRpcError(error.message)) {
       throw new Error(
         "FULFILL_RPC_BROKEN: Run supabase/stripe-fulfill-hotfix.sql in Supabase SQL Editor"
       );
@@ -197,11 +274,8 @@ async function fulfillViaSessionMetadataFallback(
   source: FulfillSource,
   options?: FulfillOptions
 ): Promise<boolean> {
-  if (!options?.userClient) {
-    throw new Error(
-      "METADATA_FULFILL_NEEDS_HOTFIX: Run supabase/stripe-fulfill-hotfix.sql in Supabase SQL Editor"
-    );
-  }
+  const userClient =
+    options?.userClient ?? (await createUserScopedClient(userId));
 
   const supabase = createServiceClient();
   const platformFee = Math.floor(amountTotal * 0.1);
@@ -247,7 +321,10 @@ async function fulfillViaSessionMetadataFallback(
     throw new Error("PAYMENT_INSERT_EMPTY");
   }
 
-  return fulfillStripePaymentRecord(inserted.id, session, options);
+  return fulfillStripePaymentRecord(inserted.id, session, {
+    ...options,
+    userClient,
+  });
 }
 
 export async function fulfillCheckoutSessionPoints(

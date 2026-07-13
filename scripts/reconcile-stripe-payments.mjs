@@ -1,6 +1,6 @@
 /**
  * Reconcile paid Stripe Checkout sessions with Supabase point balances.
- * Does not print secrets or PII.
+ * Uses user-scoped RPC when service RPC is broken. Does not print secrets or PII.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -25,33 +25,83 @@ loadEnvLocal();
 
 const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-if (!stripeKey || !supabaseUrl || !serviceKey) {
-  console.error("Missing STRIPE_SECRET_KEY, Supabase URL, or SUPABASE_SERVICE_ROLE_KEY");
+if (!stripeKey || !supabaseUrl || !anonKey || !serviceKey) {
+  console.error("Missing Stripe or Supabase environment variables");
   process.exit(1);
 }
 
 const stripe = new Stripe(stripeKey);
-const supabase = createClient(supabaseUrl, serviceKey, {
+const service = createClient(supabaseUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+async function createUserClient(userId) {
+  const { data: profile, error: profileError } = await service
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError || !profile?.email) {
+    throw new Error("USER_EMAIL_NOT_FOUND");
+  }
+
+  const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
+    type: "magiclink",
+    email: profile.email,
+  });
+
+  if (linkError) {
+    throw new Error(`ADMIN_LINK_FAILED: ${linkError.message}`);
+  }
+
+  const tokenHash = linkData.properties?.hashed_token;
+  if (!tokenHash) {
+    throw new Error("ADMIN_LINK_TOKEN_MISSING");
+  }
+
+  const authClient = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: authData, error: verifyError } = await authClient.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "email",
+  });
+
+  if (verifyError || !authData.session?.access_token) {
+    throw new Error(`USER_SESSION_FAILED: ${verifyError?.message ?? "no session"}`);
+  }
+
+  return createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${authData.session.access_token}`,
+      },
+    },
+  });
+}
+
 async function fulfillPaymentRecord(paymentId, session) {
-  const { data: existing } = await supabase
+  const { data: payment, error: paymentError } = await service
     .from("payments")
     .select("status, user_id, point_amount")
     .eq("id", paymentId)
     .maybeSingle();
 
-  if (!existing) {
+  if (paymentError || !payment) {
     return { ok: false, reason: "payment_not_found" };
   }
-  if (existing.status === "completed") {
-    return { ok: true, reason: "already_completed", userId: existing.user_id };
+
+  if (payment.status === "completed") {
+    return { ok: true, reason: "already_completed", userId: payment.user_id };
   }
 
-  await supabase
+  await service
     .from("payments")
     .update({
       stripe_checkout_session_id: session.id,
@@ -62,49 +112,28 @@ async function fulfillPaymentRecord(paymentId, session) {
     })
     .eq("id", paymentId);
 
-  const { error } = await supabase.rpc("fulfill_stripe_payment", {
+  const { error: serviceRpcError } = await service.rpc("fulfill_stripe_payment", {
     p_payment_id: paymentId,
   });
 
-  if (error) {
-    return { ok: false, reason: error.message };
+  if (!serviceRpcError) {
+    return { ok: true, reason: "service_rpc_fulfilled", userId: payment.user_id };
   }
 
-  return { ok: true, reason: "fulfilled", userId: existing.user_id };
-}
-
-async function fulfillSessionMetadata(session) {
-  const userId = session.metadata?.user_id;
-  const pointAmount = Number(session.metadata?.point_amount ?? 0);
-  const amountTotal = Number(session.metadata?.amount_total ?? pointAmount);
-
-  if (!userId || !pointAmount) {
-    return { ok: false, reason: "missing_metadata" };
+  if (!serviceRpcError.message.includes("p_payment")) {
+    return { ok: false, reason: serviceRpcError.message };
   }
 
-  const { data: paymentId, error } = await supabase.rpc(
-    "fulfill_stripe_session_metadata",
-    {
-      p_checkout_session_id: session.id,
-      p_user_id: userId,
-      p_point_amount: pointAmount,
-      p_amount_total: amountTotal,
-      p_payment_intent_id:
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.payment_intent?.id ?? null,
-      p_stripe_customer_id:
-        typeof session.customer === "string"
-          ? session.customer
-          : session.customer?.id ?? null,
-    }
-  );
+  const userClient = await createUserClient(payment.user_id);
+  const { error: userRpcError } = await userClient.rpc("fulfill_stripe_payment_for_user", {
+    p_payment_id: paymentId,
+  });
 
-  if (error) {
-    return { ok: false, reason: error.message };
+  if (userRpcError) {
+    return { ok: false, reason: userRpcError.message };
   }
 
-  return { ok: true, reason: "metadata_fulfilled", userId, paymentId };
+  return { ok: true, reason: "user_rpc_fulfilled", userId: payment.user_id };
 }
 
 async function main() {
@@ -124,29 +153,32 @@ async function main() {
     if (paymentId) {
       result = await fulfillPaymentRecord(paymentId, session);
     } else {
-      const { data: bySession } = await supabase
-        .from("payments")
-        .select("id, status, user_id")
-        .eq("stripe_checkout_session_id", session.id)
-        .maybeSingle();
-
-      if (bySession?.status === "completed") {
-        result = { ok: true, reason: "session_already_completed", userId: bySession.user_id };
-      } else if (bySession?.id) {
-        result = await fulfillPaymentRecord(bySession.id, session);
+      const userId = session.metadata?.user_id;
+      const pointAmount = Number(session.metadata?.point_amount ?? 0);
+      if (!userId || !pointAmount) {
+        result = { ok: false, reason: "missing_metadata" };
       } else {
-        result = await fulfillSessionMetadata(session);
+        const { data: bySession } = await service
+          .from("payments")
+          .select("id")
+          .eq("stripe_checkout_session_id", session.id)
+          .maybeSingle();
+        if (bySession?.id) {
+          result = await fulfillPaymentRecord(bySession.id, session);
+        } else {
+          result = { ok: false, reason: "no_payment_record" };
+        }
       }
     }
 
     console.log({
-      session_id: session.id.slice(0, 12) + "...",
+      session_id: session.id.slice(0, 14) + "...",
       result: result.reason,
       ok: result.ok,
     });
 
     if (result.ok && result.userId) {
-      const { data: profile } = await supabase
+      const { data: profile } = await service
         .from("profiles")
         .select("point_balance")
         .eq("id", result.userId)
