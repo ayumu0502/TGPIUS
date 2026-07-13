@@ -1,5 +1,10 @@
 import { getStripeMode, type StripeMode } from "@/lib/stripe/mode";
 
+export function isTruthyEnvFlag(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
 export type StripeEnvValidation = {
   valid: boolean;
   mode: StripeMode;
@@ -67,6 +72,21 @@ export function getSupporterPriceId(): string | null {
 }
 
 export function validateStripeEnv(): StripeEnvValidation {
+  return validateStripeEnvInternal({ strictWebhook: true, strictSupporterPrice: true });
+}
+
+/** Checkout に必要な検証（Webhook 未設定は警告のみ） */
+export function validateStripeEnvForCheckout(): StripeEnvValidation {
+  return validateStripeEnvInternal({
+    strictWebhook: false,
+    strictSupporterPrice: false,
+  });
+}
+
+function validateStripeEnvInternal(options: {
+  strictWebhook: boolean;
+  strictSupporterPrice: boolean;
+}): StripeEnvValidation {
   const secret = getStripeSecretKey();
   const publishable = getStripePublishableKey();
   const mode = getStripeMode();
@@ -93,20 +113,28 @@ export function validateStripeEnv(): StripeEnvValidation {
   }
 
   if (!getStripeWebhookSecret()) {
-    const mode = getStripeMode();
-    if (mode === "live") {
-      errors.push("STRIPE_WEBHOOK_SECRET_LIVE が未設定です（本番 Webhook 用）");
+    const webhookMode = getStripeMode();
+    const message =
+      webhookMode === "live"
+        ? "STRIPE_WEBHOOK_SECRET_LIVE が未設定です（本番 Webhook 用）"
+        : "Webhook Secret が未設定です（STRIPE_WEBHOOK_SECRET_TEST）";
+    if (options.strictWebhook && webhookMode === "live") {
+      errors.push(message);
     } else {
-      warnings.push("Webhook Secret が未設定です（STRIPE_WEBHOOK_SECRET_TEST）");
+      warnings.push(message);
     }
   }
 
   if (!getSupporterPriceId()) {
-    const mode = getStripeMode();
-    if (mode === "live") {
-      errors.push("STRIPE_SUPPORTER_PRICE_ID_LIVE が未設定です");
+    const priceMode = getStripeMode();
+    const message =
+      priceMode === "live"
+        ? "STRIPE_SUPPORTER_PRICE_ID_LIVE が未設定です"
+        : "STRIPE_SUPPORTER_PRICE_ID が未設定です";
+    if (options.strictSupporterPrice && priceMode === "live") {
+      errors.push(message);
     } else {
-      warnings.push("STRIPE_SUPPORTER_PRICE_ID が未設定です");
+      warnings.push(message);
     }
   }
 
@@ -125,9 +153,11 @@ export function validateStripeEnv(): StripeEnvValidation {
   if (
     process.env.NODE_ENV === "production" &&
     mode === "test" &&
-    process.env.STRIPE_ALLOW_TEST_IN_PRODUCTION !== "true"
+    !isTruthyEnvFlag(process.env.STRIPE_ALLOW_TEST_IN_PRODUCTION)
   ) {
-    errors.push("本番環境で Stripe テストキーが使用されています（Live キーに切り替えてください）");
+    errors.push(
+      "本番環境で Stripe テストキーが使用されています。Vercel に STRIPE_ALLOW_TEST_IN_PRODUCTION=true を設定してください"
+    );
   }
 
   if (process.env.NODE_ENV === "production" && mode === "live") {

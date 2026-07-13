@@ -12,9 +12,11 @@ export function isStripeLiveMode(): boolean {
   return getStripeMode() === "live";
 }
 
+import { isTruthyEnvFlag } from "@/lib/stripe/env";
+
 export function assertProductionStripeMode(): void {
   if (process.env.NODE_ENV !== "production") return;
-  if (process.env.STRIPE_ALLOW_TEST_IN_PRODUCTION === "true") return;
+  if (isTruthyEnvFlag(process.env.STRIPE_ALLOW_TEST_IN_PRODUCTION)) return;
   const mode = getStripeMode();
   if (mode === "test") {
     console.warn(

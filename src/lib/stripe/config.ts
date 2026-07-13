@@ -1,4 +1,8 @@
-import { isStripeConfigured } from "@/lib/stripe/client";
+import { isStripeConfigured, getStripeClientInitError } from "@/lib/stripe/client";
+import {
+  getStripePublishableKey,
+  validateStripeEnvForCheckout,
+} from "@/lib/stripe/env";
 
 export type StripeCheckoutStatus = {
   ready: boolean;
@@ -14,51 +18,34 @@ export function getStripeModeFromEnv(): StripeCheckoutStatus["mode"] {
   return "unset";
 }
 
-export function getStripePublishableKey(): string | null {
-  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
-  if (!key) return null;
-  if (!key.startsWith("pk_test_") && !key.startsWith("pk_live_")) return null;
-  return key;
-}
-
 export function getStripeCheckoutStatus(): StripeCheckoutStatus {
   const mode = getStripeModeFromEnv();
-  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const validation = validateStripeEnvForCheckout();
 
-  if (!secretKey) {
+  if (!validation.valid) {
     return {
       ready: false,
-      mode: "unset",
-      message:
-        "Stripe が未設定です。.env.local に STRIPE_SECRET_KEY（テスト用 Secret key: sk_test_...）を設定し、サーバーを再起動してください。",
+      mode: validation.mode === "unset" ? mode : validation.mode,
+      message: validation.errors[0] ?? "Stripe の設定が正しくありません",
     };
   }
 
-  if (mode === "unset") {
-    return {
-      ready: false,
-      mode: "unset",
-      message:
-        "STRIPE_SECRET_KEY の形式が正しくありません。Stripe Dashboard のテスト用 Secret key（sk_test_...）を設定してください。",
-    };
-  }
-
-  if (secretKey.includes("...") || secretKey.length < 24) {
+  const publishable = getStripePublishableKey();
+  if (!publishable) {
     return {
       ready: false,
       mode,
       message:
-        "STRIPE_SECRET_KEY がプレースホルダーのままです。Stripe Dashboard からコピーした実際の Secret key を設定してください。",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY が未設定です（pk_test_... を Vercel に設定してください）",
     };
   }
 
-  if (!appUrl) {
+  const initError = getStripeClientInitError();
+  if (initError) {
     return {
       ready: false,
       mode,
-      message:
-        "NEXT_PUBLIC_APP_URL が未設定です（例: http://localhost:3000）。Stripe のリダイレクト先に使用します。",
+      message: initError,
     };
   }
 

@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { canUseStripePaymentRecords } from "@/lib/stripe/checkout-capabilities";
+import { logStripeCheckoutFailure } from "@/lib/stripe/checkout-errors";
 import { getStripe } from "@/lib/stripe/client";
 import { getStripeCheckoutStatus } from "@/lib/stripe/config";
 import {
@@ -10,7 +12,6 @@ import {
   getAppUrl,
   POINT_PLANS,
 } from "@/lib/stripe/plans";
-import { canUseStripePaymentRecords } from "@/lib/stripe/checkout-capabilities";
 import { getStripeSupabase } from "@/lib/supabase/stripe-db";
 import {
   PURCHASE_AMOUNTS,
@@ -28,18 +29,33 @@ async function getOrCreateStripeCustomer(
   name: string
 ): Promise<string> {
   const { client: supabase, mode } = await getStripeSupabase();
+  const stripe = getStripe();
 
-  const { data: existing } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("stripe_customers")
     .select("stripe_customer_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (existing?.stripe_customer_id) {
-    return existing.stripe_customer_id;
+  if (lookupError) {
+    logStripeCheckoutFailure("stripe_customer", lookupError, {
+      action: "lookup_customer",
+      userId,
+    });
+  } else if (existing?.stripe_customer_id) {
+    try {
+      const customer = await stripe.customers.retrieve(existing.stripe_customer_id);
+      if (!("deleted" in customer && customer.deleted)) {
+        return existing.stripe_customer_id;
+      }
+    } catch (error) {
+      logStripeCheckoutFailure("stripe_customer", error, {
+        action: "retrieve_existing_customer",
+        userId,
+      });
+    }
   }
 
-  const stripe = getStripe();
   const customer = await stripe.customers.create({
     email,
     name,
@@ -195,6 +211,7 @@ export async function createCheckoutSession(
         netAmount
       );
     } catch (error) {
+      logStripeCheckoutFailure("pending_payment", error, { userId: current.id });
       const message = error instanceof Error ? error.message : "";
       if (
         message.includes("payments") ||
@@ -256,7 +273,16 @@ export async function createCheckoutSession(
     });
 
     if (paymentId) {
-      await attachCheckoutSession(paymentId, session.id);
+      try {
+        await attachCheckoutSession(paymentId, session.id);
+      } catch (attachError) {
+        logStripeCheckoutFailure("attach_session", attachError, {
+          userId: current.id,
+          paymentId,
+          sessionId: session.id,
+        });
+        throw attachError;
+      }
     }
 
     if (!session.url) {
@@ -264,7 +290,13 @@ export async function createCheckoutSession(
     }
 
     checkoutUrl = session.url;
-  } catch {
+  } catch (error) {
+    logStripeCheckoutFailure("checkout_session", error, {
+      userId: current.id,
+      paymentId,
+      appUrl: getAppUrl(),
+      hasPaymentRecord: Boolean(paymentId),
+    });
     if (paymentId) {
       await markPaymentFailed(paymentId);
     }

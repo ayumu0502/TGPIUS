@@ -1,6 +1,11 @@
 import Stripe from "stripe";
 import { assertProductionStripeMode } from "@/lib/stripe/mode";
-import { getStripeSecretKey, validateStripeEnv } from "@/lib/stripe/env";
+import {
+  getStripeSecretKey,
+  stripeSafeLog,
+  validateStripeEnvForCheckout,
+} from "@/lib/stripe/env";
+import { formatStripeError } from "@/lib/stripe/checkout-errors";
 
 let stripeClient: Stripe | null = null;
 
@@ -11,8 +16,12 @@ export function getStripe(): Stripe {
       throw new Error("STRIPE_SECRET_KEY is not configured");
     }
 
-    const validation = validateStripeEnv();
+    const validation = validateStripeEnvForCheckout();
     if (!validation.valid) {
+      stripeSafeLog("stripe env validation failed", {
+        mode: validation.mode,
+        errors: validation.errors,
+      });
       throw new Error(validation.errors[0] ?? "Stripe environment is invalid");
     }
 
@@ -21,6 +30,19 @@ export function getStripe(): Stripe {
   }
 
   return stripeClient;
+}
+
+export function resetStripeClientForTests(): void {
+  stripeClient = null;
+}
+
+export function getStripeClientInitError(): string | null {
+  try {
+    getStripe();
+    return null;
+  } catch (error) {
+    return formatStripeError(error).message as string;
+  }
 }
 
 export function isStripeConfigured(): boolean {
