@@ -155,3 +155,72 @@ $$;
 
 revoke all on function public.fulfill_stripe_session_metadata(text, uuid, integer, integer, text, text) from public;
 grant execute on function public.fulfill_stripe_session_metadata(text, uuid, integer, integer, text, text) to service_role;
+
+-- User-scoped fulfillment for success-page return flow
+create or replace function public.fulfill_stripe_payment_for_user(p_payment_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_payment public.payments%rowtype;
+  v_transaction_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'NOT_AUTHENTICATED';
+  end if;
+
+  select * into v_payment
+  from public.payments
+  where id = p_payment_id
+    and user_id = v_user_id
+  for update;
+
+  if not found then
+    raise exception 'PAYMENT_NOT_FOUND';
+  end if;
+
+  if v_payment.status = 'completed' then
+    return;
+  end if;
+
+  if v_payment.status <> 'pending' then
+    raise exception 'INVALID_PAYMENT_STATUS';
+  end if;
+
+  perform set_config('app.allow_point_update', 'true', true);
+
+  update public.profiles
+  set
+    point_balance = point_balance + v_payment.point_amount,
+    updated_at = now()
+  where id = v_payment.user_id;
+
+  insert into public.point_transactions (
+    user_id,
+    amount,
+    transaction_type,
+    payment_method,
+    payment_id
+  )
+  values (
+    v_payment.user_id,
+    v_payment.point_amount,
+    'purchase',
+    'stripe',
+    v_payment.id
+  )
+  returning id into v_transaction_id;
+
+  update public.payments
+  set
+    status = 'completed',
+    completed_at = now()
+  where id = p_payment_id;
+end;
+$$;
+
+revoke all on function public.fulfill_stripe_payment_for_user(uuid) from public;
+grant execute on function public.fulfill_stripe_payment_for_user(uuid) to authenticated;
