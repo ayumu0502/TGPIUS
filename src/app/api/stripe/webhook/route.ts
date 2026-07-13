@@ -1,27 +1,67 @@
 import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/client";
-import { getStripeWebhookSecret, stripeSafeLog } from "@/lib/stripe/env";
+import {
+  fulfillCheckoutSessionPoints,
+  fulfillPaymentIntentPoints,
+} from "@/lib/stripe/fulfill-point-purchase";
+import { getStripeMode } from "@/lib/stripe/mode";
+import {
+  getStripeWebhookSecret,
+  stripeSafeLog,
+} from "@/lib/stripe/env";
+import { logWebhook, logWebhookError } from "@/lib/stripe/webhook-log";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
 async function isEventProcessed(eventId: string): Promise<boolean> {
-  const supabase = createServiceClient();
-  const { data } = await supabase
-    .from("stripe_webhook_events")
-    .select("event_id")
-    .eq("event_id", eventId)
-    .maybeSingle();
-  return Boolean(data);
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from("stripe_webhook_events")
+      .select("event_id")
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (error) {
+      logWebhook("event idempotency lookup skipped", {
+        event_id: eventId,
+        reason: error.message,
+      });
+      return false;
+    }
+
+    return Boolean(data);
+  } catch (error) {
+    logWebhookError("event idempotency lookup failed", error, {
+      event_id: eventId,
+    });
+    return false;
+  }
 }
 
 async function markEventProcessed(eventId: string, eventType: string) {
-  const supabase = createServiceClient();
-  await supabase.from("stripe_webhook_events").insert({
-    event_id: eventId,
-    event_type: eventType,
-  });
+  try {
+    const supabase = createServiceClient();
+    const { error } = await supabase.from("stripe_webhook_events").insert({
+      event_id: eventId,
+      event_type: eventType,
+    });
+
+    if (error && !error.message.includes("duplicate")) {
+      logWebhook("event idempotency store failed", {
+        event_id: eventId,
+        event_type: eventType,
+        reason: error.message,
+      });
+    }
+  } catch (error) {
+    logWebhookError("event idempotency store unavailable", error, {
+      event_id: eventId,
+      event_type: eventType,
+    });
+  }
 }
 
 function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
@@ -88,76 +128,6 @@ async function recordBillingEvent(input: {
   if (error && !error.message.includes("duplicate")) {
     throw new Error(error.message);
   }
-}
-
-async function fulfillPayment(paymentId: string, session: Stripe.Checkout.Session) {
-  const supabase = createServiceClient();
-
-  const { data: existing } = await supabase
-    .from("payments")
-    .select("status")
-    .eq("id", paymentId)
-    .maybeSingle();
-
-  if (existing?.status === "completed") return;
-
-  await supabase
-    .from("payments")
-    .update({
-      stripe_payment_intent_id:
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.payment_intent?.id ?? null,
-      stripe_customer_id:
-        typeof session.customer === "string"
-          ? session.customer
-          : session.customer?.id ?? null,
-    })
-    .eq("id", paymentId);
-
-  const { error } = await supabase.rpc("fulfill_stripe_payment", {
-    p_payment_id: paymentId,
-  });
-  if (error) throw new Error(error.message);
-}
-
-async function fulfillPaymentByIntent(paymentIntent: Stripe.PaymentIntent) {
-  const supabase = createServiceClient();
-  const { data: payment } = await supabase
-    .from("payments")
-    .select("id, status, user_id, amount_total")
-    .eq("stripe_payment_intent_id", paymentIntent.id)
-    .maybeSingle();
-
-  if (!payment || payment.status === "completed") {
-    if (!payment) {
-      const paymentId = paymentIntent.metadata?.payment_id;
-      if (paymentId) {
-        const { data: byId } = await supabase
-          .from("payments")
-          .select("id, status")
-          .eq("id", paymentId)
-          .maybeSingle();
-        if (byId?.status === "completed") return;
-        if (byId) {
-          await supabase
-            .from("payments")
-            .update({ stripe_payment_intent_id: paymentIntent.id })
-            .eq("id", paymentId);
-          const { error } = await supabase.rpc("fulfill_stripe_payment", {
-            p_payment_id: paymentId,
-          });
-          if (error) throw new Error(error.message);
-        }
-      }
-    }
-    return;
-  }
-
-  const { error } = await supabase.rpc("fulfill_stripe_payment", {
-    p_payment_id: payment.id,
-  });
-  if (error) throw new Error(error.message);
 }
 
 async function syncSubscription(
@@ -319,26 +289,49 @@ async function recordSubscriptionInvoice(invoice: Stripe.Invoice) {
 }
 
 export async function POST(request: Request) {
+  const stripeMode = getStripeMode();
   const webhookSecret = getStripeWebhookSecret();
+
   if (!webhookSecret) {
+    logWebhook("webhook secret not configured", {
+      stripe_mode: stripeMode,
+      expects:
+        stripeMode === "test"
+          ? "STRIPE_WEBHOOK_SECRET_TEST"
+          : "STRIPE_WEBHOOK_SECRET_LIVE",
+    });
     return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
   }
 
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
+    logWebhook("missing stripe-signature header");
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
   let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
-  } catch {
+  } catch (error) {
+    logWebhookError("signature verification failed", error, {
+      stripe_mode: stripeMode,
+      webhook_secret_configured: true,
+    });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  logWebhook("event received", {
+    event_id: event.id,
+    type: event.type,
+    stripe_mode: stripeMode,
+  });
+
   if (await isEventProcessed(event.id)) {
-    stripeSafeLog("duplicate webhook event", { event_id: event.id, type: event.type });
+    logWebhook("duplicate event skipped", {
+      event_id: event.id,
+      type: event.type,
+    });
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -358,14 +351,26 @@ export async function POST(request: Request) {
               : session.customer?.id ?? null;
           await syncSubscription(subscription, customerId);
         } else if (session.payment_status === "paid") {
-          const paymentId = session.metadata?.payment_id;
-          if (paymentId) await fulfillPayment(paymentId, session);
+          const fulfilled = await fulfillCheckoutSessionPoints(session, "webhook");
+          logWebhook("checkout.session.completed point fulfillment", {
+            event_id: event.id,
+            session_id: session.id,
+            fulfilled,
+            has_payment_id: Boolean(session.metadata?.payment_id),
+            has_user_id: Boolean(session.metadata?.user_id),
+            point_amount: session.metadata?.point_amount ?? null,
+          });
         }
         break;
       }
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        await fulfillPaymentByIntent(paymentIntent);
+        const fulfilled = await fulfillPaymentIntentPoints(paymentIntent, "webhook");
+        logWebhook("payment_intent.succeeded point fulfillment", {
+          event_id: event.id,
+          payment_intent_id: paymentIntent.id,
+          fulfilled,
+        });
         break;
       }
       case "payment_intent.payment_failed": {
@@ -450,15 +455,17 @@ export async function POST(request: Request) {
         break;
       }
       default:
+        logWebhook("event ignored", { event_id: event.id, type: event.type });
         break;
     }
 
     await markEventProcessed(event.id, event.type);
     stripeSafeLog("webhook processed", { type: event.type, event_id: event.id });
+    logWebhook("event processed", { event_id: event.id, type: event.type });
   } catch (error) {
-    stripeSafeLog("webhook handler error", {
+    logWebhookError("handler failed", error, {
+      event_id: event.id,
       type: event.type,
-      message: error instanceof Error ? error.message : "unknown",
     });
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }

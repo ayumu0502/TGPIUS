@@ -159,7 +159,7 @@ begin
   set
     status = 'completed',
     completed_at = now()
-  where id = p_payment.id;
+  where id = p_payment_id;
 end;
 $$;
 

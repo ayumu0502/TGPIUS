@@ -268,6 +268,15 @@ export async function createCheckoutSession(
         net_amount: String(netAmount),
         checkout_mode: paymentId ? "payment_record" : "direct_fulfill",
       },
+      payment_intent_data: {
+        metadata: {
+          ...(paymentId ? { payment_id: paymentId } : {}),
+          user_id: current.id,
+          point_amount: String(plan.points),
+          amount_total: String(plan.yen),
+          checkout_mode: paymentId ? "payment_record" : "direct_fulfill",
+        },
+      },
       success_url: `${appUrl}/points/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/points/purchase/cancel`,
     });
