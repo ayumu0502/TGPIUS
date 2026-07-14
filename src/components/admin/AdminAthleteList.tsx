@@ -94,12 +94,20 @@ export default function AdminAthleteList({ athletes }: AdminAthleteListProps) {
 
               <div className="flex shrink-0 flex-wrap gap-2">
                 {athlete.linked_user_id ? (
-                  <Link
-                    href={`/profile/${athlete.linked_user_id}`}
-                    className="rounded-full border border-[var(--card-border)] px-4 py-2 text-xs font-medium hover:border-[var(--gold)]"
-                  >
-                    プロフィール
-                  </Link>
+                  <>
+                    <Link
+                      href={`/profile/${athlete.linked_user_id}`}
+                      className="rounded-full border border-[var(--card-border)] px-4 py-2 text-xs font-medium hover:border-[var(--gold)]"
+                    >
+                      プロフィール
+                    </Link>
+                    <Link
+                      href={`/admin/athletes/${athlete.linked_user_id}/edit`}
+                      className="rounded-full border border-[var(--gold)] px-4 py-2 text-xs font-medium text-[var(--gold-dark)]"
+                    >
+                      代理編集
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <form action={resendAction}>
