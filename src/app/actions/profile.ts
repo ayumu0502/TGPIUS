@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/app/actions/auth";
-import { isApprovedAthlete } from "@/lib/athlete/status";
+import { canEditOwnAthleteProfile, canViewAthleteProfile } from "@/lib/athlete/visibility";
 import { createClient } from "@/lib/supabase/server";
 import {
   mapProfileRow,
@@ -31,20 +31,28 @@ export async function getPublicProfile(
   const supabase = await createClient();
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select(`${PROFILE_SELECT}, athlete_review_status`)
+    .select(`${PROFILE_SELECT}, athlete_review_status, is_profile_public, invited_via_provisional_id`)
     .eq("id", userId)
     .single();
 
   if (error || !profile) return null;
 
+  const current = await getCurrentProfile();
+
   if (
     profile.account_type === "athlete" &&
-    profile.athlete_review_status !== "approved"
+    !canViewAthleteProfile(
+      {
+        id: userId,
+        account_type: profile.account_type,
+        athlete_review_status: profile.athlete_review_status,
+        is_profile_public: profile.is_profile_public,
+      },
+      current?.id ?? null,
+      current?.is_admin === true
+    )
   ) {
-    const current = await getCurrentProfile();
-    if (!current || current.id !== userId) {
-      return null;
-    }
+    return null;
   }
 
   const { count } = await supabase
@@ -73,8 +81,8 @@ export async function updateAthleteProfile(
   if (current.account_type !== "athlete") {
     return { error: "アスリートアカウントのみ編集できます" };
   }
-  if (!isApprovedAthlete(current)) {
-    return { error: "選手申請の承認後にプロフィールを編集できます" };
+  if (!canEditOwnAthleteProfile(current)) {
+    return { error: "プロフィールを編集する権限がありません" };
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -84,10 +92,12 @@ export async function updateAthleteProfile(
   const bio = String(formData.get("bio") ?? "").trim();
   const achievements = String(formData.get("achievements") ?? "").trim();
   const goals = String(formData.get("goals") ?? "").trim();
+  const careerHistory = String(formData.get("career_history") ?? "").trim();
   const instagramUrl = String(formData.get("instagram_url") ?? "").trim();
   const tiktokUrl = String(formData.get("tiktok_url") ?? "").trim();
   const xUrl = String(formData.get("x_url") ?? "").trim();
   const avatarFile = formData.get("avatar") as File | null;
+  const coverFile = formData.get("cover") as File | null;
 
   const fieldErrors: ProfileEditState["fieldErrors"] = {};
 
@@ -99,6 +109,9 @@ export async function updateAthleteProfile(
     fieldErrors.achievements = "実績は500文字以内にしてください";
   }
   if (goals.length > 500) fieldErrors.goals = "目標は500文字以内にしてください";
+  if (careerHistory.length > 2000) {
+    fieldErrors.career_history = "経歴は2000文字以内にしてください";
+  }
 
   for (const [key, url] of [
     ["instagram_url", instagramUrl],
@@ -116,6 +129,15 @@ export async function updateAthleteProfile(
     }
     if (avatarFile.size > MAX_AVATAR_SIZE) {
       fieldErrors.avatar = "画像は5MB以下にしてください";
+    }
+  }
+
+  if (coverFile && coverFile.size > 0) {
+    if (!AVATAR_TYPES.includes(coverFile.type)) {
+      fieldErrors.cover = "JPEG, PNG, WebP, GIF のみ対応しています";
+    }
+    if (coverFile.size > MAX_AVATAR_SIZE) {
+      fieldErrors.cover = "画像は5MB以下にしてください";
     }
   }
 
@@ -149,6 +171,30 @@ export async function updateAthleteProfile(
     avatarUrl = `${publicUrl}?t=${Date.now()}`;
   }
 
+  let coverUrl: string | undefined;
+  if (coverFile && coverFile.size > 0) {
+    const ext = coverFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const filePath = `${current.id}/cover.${ext}`;
+
+    const { error: coverUploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, coverFile, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: coverFile.type,
+      });
+
+    if (coverUploadError) {
+      return { error: "カバー画像のアップロードに失敗しました" };
+    }
+
+    const {
+      data: { publicUrl: coverPublicUrl },
+    } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+    coverUrl = `${coverPublicUrl}?t=${Date.now()}`;
+  }
+
   const updateData: Record<string, string> = {
     name,
     sport,
@@ -157,6 +203,7 @@ export async function updateAthleteProfile(
     bio,
     achievements,
     goals,
+    career_history: careerHistory,
     instagram_url: instagramUrl,
     tiktok_url: tiktokUrl,
     x_url: xUrl,
@@ -165,6 +212,9 @@ export async function updateAthleteProfile(
 
   if (avatarUrl) {
     updateData.avatar_url = avatarUrl;
+  }
+  if (coverUrl) {
+    updateData.cover_url = coverUrl;
   }
 
   const { error } = await supabase

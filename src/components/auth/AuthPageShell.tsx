@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import LegalFooterLinks from "@/components/legal/LegalFooterLinks";
+import BackButton from "@/components/ui/BackButton";
 import { AuthLogo } from "@/components/auth/AuthBackground";
 
 type AuthPageShellProps = {
@@ -20,13 +21,16 @@ export default function AuthPageShell({ children, headerAction }: AuthPageShellP
       />
 
       <header className="relative z-10 border-b border-[var(--card-border)] bg-white/92 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
-          <AuthLogo theme="light" />
-          {headerAction}
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2">
+            <BackButton />
+            <AuthLogo theme="light" />
+          </div>
+          <div className="shrink-0">{headerAction}</div>
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 items-center justify-center px-6 py-16">
+      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
         {children}
       </main>
 

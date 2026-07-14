@@ -12,6 +12,8 @@ export interface Profile {
   is_admin?: boolean;
   is_suspended?: boolean;
   athlete_review_status?: AthleteReviewStatus | null;
+  invited_via_provisional_id?: string | null;
+  is_profile_public?: boolean;
 }
 
 export interface AuthFormState {

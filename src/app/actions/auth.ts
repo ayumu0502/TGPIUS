@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { translateAuthError } from "@/lib/auth/errors";
 import { resolvePostLoginRedirect } from "@/lib/auth/admin-access";
+import { completeAthleteInviteRegistration } from "@/app/actions/athlete-invite";
+import { getAthleteEntryPath } from "@/lib/athlete/status";
+import type { AthleteReviewStatus } from "@/types/athlete-application";
 import {
   getAccountTypeFromMetadata,
   getDashboardPath,
@@ -47,6 +50,7 @@ export async function register(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const accountTypeValue = String(formData.get("accountType") ?? "fan");
+  const inviteToken = String(formData.get("inviteToken") ?? "").trim();
 
   const validationError = validateRegistrationInput({
     name,
@@ -59,7 +63,7 @@ export async function register(
     return validationError;
   }
 
-  const accountType = parseAccountType(accountTypeValue);
+  const accountType = inviteToken ? ("athlete" as const) : parseAccountType(accountTypeValue);
 
   if (!accountType) {
     return {
@@ -100,6 +104,26 @@ export async function register(
       return { error: translateAuthError(profileError.message) };
     }
 
+    if (inviteToken) {
+      const linkResult = await completeAthleteInviteRegistration(
+        inviteToken,
+        data.user.id
+      );
+      if (!linkResult.ok) {
+        return { error: linkResult.error };
+      }
+      const { data: linkedProfile } = await supabase
+        .from("profiles")
+        .select("athlete_review_status")
+        .eq("id", data.user.id)
+        .single();
+      redirect(
+        getAthleteEntryPath(
+          linkedProfile?.athlete_review_status as AthleteReviewStatus | null
+        )
+      );
+    }
+
     if (accountType === "athlete") {
       redirect("/athlete/apply");
     }
@@ -108,8 +132,9 @@ export async function register(
   }
 
   return {
-    success:
-      accountType === "athlete"
+    success: inviteToken
+      ? "登録が完了しました。ログインしてプロフィールをご確認ください。"
+      : accountType === "athlete"
         ? "確認メールを送信しました。メール内のリンクをクリックして登録を完了し、選手申請を行ってください。"
         : "確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。",
   };
@@ -184,7 +209,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, name, email, account_type, created_at, updated_at, is_admin, is_suspended, athlete_review_status"
+      "id, name, email, account_type, created_at, updated_at, is_admin, is_suspended, athlete_review_status, invited_via_provisional_id, is_profile_public"
     )
     .eq("id", user.id)
     .single();

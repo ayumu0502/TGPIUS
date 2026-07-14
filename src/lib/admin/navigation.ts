@@ -8,6 +8,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/dashboard", label: "概要" },
   { href: "/admin/users", label: "ユーザー" },
   { href: "/admin/applications", label: "選手申請" },
+  { href: "/admin/athletes", label: "選手招待" },
+  { href: "/admin/organizations", label: "組織" },
   { href: "/admin/posts", label: "投稿" },
   { href: "/admin/comments", label: "コメント" },
   { href: "/admin/events", label: "イベント" },

@@ -86,6 +86,21 @@ export default function AthleteProfileEditForm({
           )}
         </div>
 
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+            カバー画像
+          </label>
+          <input
+            type="file"
+            name="cover"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="w-full text-sm text-[var(--text-secondary)]"
+          />
+          {state?.fieldErrors?.cover ? (
+            <p className="mt-2 text-sm text-red-400">{state.fieldErrors.cover}</p>
+          ) : null}
+        </div>
+
         <ProfileField
           label="名前"
           name="name"
@@ -114,6 +129,13 @@ export default function AthleteProfileEditForm({
           defaultValue={profile.region}
           placeholder="例：東京都"
           error={state?.fieldErrors?.region}
+        />
+        <ProfileTextarea
+          label="経歴"
+          name="career_history"
+          defaultValue={(profile as { career_history?: string }).career_history ?? ""}
+          placeholder="競技歴・所属歴など"
+          error={state?.fieldErrors?.career_history}
         />
         <ProfileTextarea
           label="自己紹介"
@@ -234,8 +256,8 @@ function ProfileTextarea({
       <textarea
         id={name}
         name={name}
-        rows={4}
-        maxLength={500}
+        rows={name === "career_history" ? 6 : 4}
+        maxLength={name === "career_history" ? 2000 : 500}
         defaultValue={defaultValue}
         placeholder={placeholder}
         className={`ja-body w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none ${

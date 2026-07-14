@@ -123,20 +123,13 @@ export const companyPage: LegalPageContent = {
 
 export const contactPage: LegalPageContent = {
   title: "お問い合わせ",
-  description: "TGPLUSに関するご質問・ご要望はこちらからお送りください。",
+  description:
+    "スポンサー契約、タイアップ企画、広告掲載、イベント協賛、福利厚生・法人利用など、企業・スポンサー様向けのお問い合わせフォームです。",
   singleCard: true,
   sections: [
     {
-      heading: "お問い合わせ",
-      body: "下記メールアドレス、またはアプリ内サポートよりご連絡ください。通常2〜3営業日以内に返信いたします。",
-    },
-    {
-      heading: "メールアドレス",
-      body: "support@tgplus.example",
-    },
-    {
-      heading: "注意事項",
-      body: "アカウントのパスワードやクレジットカード番号等の機密情報は、メール本文に記載しないでください。",
+      heading: "企業・メディアのお問い合わせ",
+      body: "お問い合わせフォームよりご連絡ください。通常2営業日以内にご返信いたします。",
     },
   ],
 };

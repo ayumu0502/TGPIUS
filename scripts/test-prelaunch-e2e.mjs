@@ -111,6 +111,23 @@ const RPC_PROBE_ARGS = {
     p_user_id: ZERO_UUID,
     p_suspended: false,
   },
+  admin_create_provisional_athlete: {
+    p_email: "probe-invite@example.com",
+    p_full_name: "Probe",
+    p_sport: "陸上",
+  },
+  get_athlete_invite_public: { p_token: "invalid-token" },
+  complete_athlete_invite_registration: {
+    p_token: "invalid-token",
+    p_user_id: ZERO_UUID,
+  },
+  admin_send_athlete_invite: { p_provisional_id: ZERO_UUID },
+  admin_cancel_athlete_invite: { p_provisional_id: ZERO_UUID },
+  admin_upsert_organization: {
+    p_id: null,
+    p_name: "Probe Org",
+    p_org_type: "team",
+  },
   list_events: {
     p_scope: "upcoming",
     p_creator_id: null,
@@ -652,6 +669,101 @@ if (approvedAthlete?.id && fanRow?.id) {
   }
 } else {
   fail("DM flow", `fan=${fanRow?.id ?? "none"} athlete=${approvedAthlete?.id ?? "none"}`);
+}
+
+// ---------------------------------------------------------------------------
+// 7. Athlete invite & organizations
+// ---------------------------------------------------------------------------
+console.log("\n7. 選手招待・組織");
+
+assert(await tableReadable("organizations"), "organizations table");
+assert(await tableReadable("athlete_provisional_profiles"), "athlete_provisional_profiles table");
+assert(await tableReadable("athlete_invites"), "athlete_invites table");
+assert(await tableReadable("athlete_organization_memberships"), "athlete_organization_memberships table");
+assert(await rpcExists("admin_create_provisional_athlete"), "admin_create_provisional_athlete RPC");
+assert(await rpcExists("admin_send_athlete_invite"), "admin_send_athlete_invite RPC");
+assert(await rpcExists("get_athlete_invite_public"), "get_athlete_invite_public RPC");
+assert(await rpcExists("complete_athlete_invite_registration"), "complete_athlete_invite_registration RPC");
+
+if (adminProfile?.id) {
+  const adminClient = await createUserClient(adminProfile.id);
+  const inviteEmail = `e2e-invite-${Date.now()}@example.com`;
+
+  const { data: orgId, error: orgError } = await adminClient.rpc("admin_upsert_organization", {
+    p_id: null,
+    p_name: `E2E Org ${Date.now()}`,
+    p_org_type: "team",
+    p_region: "東京",
+  });
+  assert(!orgError && orgId, "admin_upsert_organization", orgError?.message);
+
+  const { data: provisionalId, error: createProvError } = await adminClient.rpc(
+    "admin_create_provisional_athlete",
+    {
+      p_email: inviteEmail,
+      p_full_name: "E2E Invite Athlete",
+      p_sport: "水泳",
+      p_team: "E2E Team",
+      p_region: "大阪",
+      p_review_status: "approved",
+      p_is_public: false,
+      p_organization_id: orgId,
+    }
+  );
+  assert(!createProvError && provisionalId, "admin_create_provisional_athlete", createProvError?.message);
+
+  const { data: inviteToken, error: sendError } = await adminClient.rpc(
+    "admin_send_athlete_invite",
+    { p_provisional_id: provisionalId }
+  );
+  assert(!sendError && inviteToken, "admin_send_athlete_invite", sendError?.message);
+
+  const { data: invitePublic } = await service.rpc("get_athlete_invite_public", {
+    p_token: inviteToken,
+  });
+  assert(
+    invitePublic?.[0]?.is_valid === true,
+    "get_athlete_invite_public valid token"
+  );
+
+  const { data: invitedAuth, error: invitedAuthError } = await service.auth.admin.createUser({
+    email: inviteEmail,
+    email_confirm: true,
+    user_metadata: { name: "E2E Invite Athlete", account_type: "athlete" },
+  });
+  if (!invitedAuthError && invitedAuth?.user?.id) {
+    const invitedUserId = invitedAuth.user.id;
+    const { error: completeError } = await service.rpc(
+      "complete_athlete_invite_registration",
+      { p_token: inviteToken, p_user_id: invitedUserId }
+    );
+    assert(!completeError, "complete_athlete_invite_registration", completeError?.message);
+
+    const { data: linkedProfile } = await service
+      .from("profiles")
+      .select("sport, athlete_review_status, invited_via_provisional_id")
+      .eq("id", invitedUserId)
+      .single();
+    assert(linkedProfile?.sport === "水泳", "invite links sport to profile");
+    assert(
+      linkedProfile?.invited_via_provisional_id === provisionalId,
+      "invite links provisional id"
+    );
+    assert(linkedProfile?.athlete_review_status === "approved", "invite copies review status");
+
+    await cleanupTestUser(invitedUserId);
+    ok("invited athlete cleanup");
+  } else {
+    fail("invited user creation", invitedAuthError?.message);
+  }
+
+  await service.from("athlete_invites").delete().eq("provisional_profile_id", provisionalId);
+  await service.from("athlete_organization_memberships").delete().eq("provisional_profile_id", provisionalId);
+  await service.from("athlete_provisional_profiles").delete().eq("id", provisionalId);
+  await service.from("organizations").delete().eq("id", orgId);
+  ok("invite flow cleanup");
+} else {
+  fail("athlete invite flow", "no admin user");
 }
 
 // Cleanup test athlete

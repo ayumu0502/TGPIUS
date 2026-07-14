@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const navLinks = [
-  { href: "#ranking", label: "アスリートを探す" },
+  { href: "#athletes", label: "アスリートを探す" },
   { href: "#events", label: "イベント" },
   { href: "#gifts", label: "ギフト" },
   { href: "#sponsors", label: "スポンサー" },
   { href: "#ranking", label: "ランキング" },
   { href: "#features", label: "TGPLUSとは" },
+  { href: "#contact", label: "お問い合わせ" },
 ];
 
 export default function LandingNavbar() {

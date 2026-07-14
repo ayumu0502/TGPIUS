@@ -86,7 +86,7 @@ export async function updateSession(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin, is_suspended, account_type, athlete_review_status")
+      .select("is_admin, is_suspended, account_type, athlete_review_status, invited_via_provisional_id")
       .eq("id", user.id)
       .single();
 
@@ -151,10 +151,21 @@ export async function updateSession(request: NextRequest) {
       isAthleteGatedPath(pathname) &&
       profile?.athlete_review_status !== "approved"
     ) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/athlete/apply";
-      redirectUrl.search = "";
-      return NextResponse.redirect(redirectUrl);
+      const isProfileEdit =
+        pathname === "/athlete/profile/edit" ||
+        pathname.startsWith("/athlete/profile/edit/");
+      const invitedEditable =
+        isProfileEdit &&
+        profile?.invited_via_provisional_id &&
+        (profile.athlete_review_status === "approved" ||
+          profile.athlete_review_status === "pending");
+
+      if (!invitedEditable) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/athlete/apply";
+        redirectUrl.search = "";
+        return NextResponse.redirect(redirectUrl);
+      }
     }
   }
 

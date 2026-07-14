@@ -799,6 +799,18 @@ body:has(.landing-page) {
   100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
 }
 
+.landing-contact-section {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(197, 160, 89, 0.1), transparent 70%),
+    linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
+  border-top: 1px solid var(--landing-border);
+}
+
+.landing-contact-section .contact-form-card,
+.landing-contact-section .contact-form-success {
+  box-shadow: var(--landing-shadow-lg);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-reveal { opacity: 1; transform: none; transition: none; }
   .lp-glass, .lp-ball--orange, .lp-light, .lp-slash, .lp-spark, .lp-pool-shimmer, .lp-hero__scroll-line { animation: none; }

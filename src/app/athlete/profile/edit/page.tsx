@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
-import { requireApprovedAthlete } from "@/app/actions/athlete-access";
+import { requireEditableAthleteProfile } from "@/app/actions/athlete-access";
 import { getPublicProfile } from "@/app/actions/profile";
 import AthleteProfileEditForm from "@/components/profile/AthleteProfileEditForm";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -14,7 +14,7 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function AthleteProfileEditPage() {
-  const current = await requireApprovedAthlete();
+  const current = await requireEditableAthleteProfile();
 
   const [profile, layoutCounts] = await Promise.all([
     getPublicProfile(current.id),

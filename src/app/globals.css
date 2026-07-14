@@ -479,6 +479,7 @@ body {
   --surface: #f7f8fa;
   background-color: #f7f8fa;
   color: #111827;
+  overflow-x: hidden;
 }
 
 .premium-app .premium-shell-sidebar {

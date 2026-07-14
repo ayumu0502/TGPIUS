@@ -8,6 +8,7 @@ const footerLinks = [
   { href: "#gifts", label: "ギフト" },
   { href: "#events", label: "イベント" },
   { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "お問い合わせ" },
 ];
 
 export default function LandingFooter() {
