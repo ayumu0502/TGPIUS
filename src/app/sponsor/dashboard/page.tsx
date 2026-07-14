@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import SponsorDashboardContent from "@/components/dashboard/SponsorDashboardContent";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "スポンサーダッシュボード | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "スポンサーダッシュボード",
   description: "スポンサー案件、契約選手、請求管理を一元管理。",
-};
+  path: "/sponsor/dashboard",
+});
 
 export default async function SponsorDashboardPage() {
   const profile = await getCurrentProfile();

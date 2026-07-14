@@ -5,13 +5,12 @@ import { getCurrentAthleteEarnings } from "@/app/actions/earnings";
 import AthleteEarningsDashboard from "@/components/connect/AthleteEarningsDashboard";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
-import { createPageMetadata } from "@/lib/seo/metadata";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 
-export const metadata = createPageMetadata({
+export const metadata = createPrivatePageMetadata({
   title: "売上管理",
   description: "ギフト・サブスク売上、出金申請・履歴を管理",
   path: "/athlete/earnings",
-  noIndex: true,
 });
 
 export default async function AthleteEarningsPage() {

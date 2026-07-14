@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -7,10 +8,11 @@ import FanclubCatalogCard from "@/components/fanclub/FanclubCatalogCard";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "ファンクラブ | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ファンクラブ",
   description: "推しの選手ファンクラブに加入しよう",
-};
+  path: "/fanclub",
+});
 
 export default async function FanclubPage() {
   const profile = await getCurrentProfile();

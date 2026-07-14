@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import LoginForm from "@/components/auth/LoginForm";
-import { createPageMetadata } from "@/lib/seo/metadata";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = createPageMetadata({
+export const metadata: Metadata = createPrivatePageMetadata({
   title: "ログイン",
   description: "TGPLUSアカウントにログインしてください。",
   path: "/login",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -6,10 +7,11 @@ import { AuthAlert } from "@/components/auth/AuthInput";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "購入キャンセル | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "購入キャンセル",
   description: "ポイント購入がキャンセルされました",
-};
+  path: "/points/purchase/cancel",
+});
 
 export default async function PointPurchaseCancelPage() {
   const profile = await getCurrentProfile();

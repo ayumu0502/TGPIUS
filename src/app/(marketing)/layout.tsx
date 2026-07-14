@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo/metadata";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo/site";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "TGPLUS — アスリート・ファン・企業をつなぐスポーツ応援プラットフォーム",
-  description:
-    "応援が、チカラになる。TGPLUSはギフト・ランキング・イベントでアスリートの挑戦を支えるスポーツ応援プラットフォームです。",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   path: "/",
 });
 

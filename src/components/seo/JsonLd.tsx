@@ -1,4 +1,4 @@
-import { getSiteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/seo/site";
+import { getSiteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/seo/site";
 
 export default function JsonLd() {
   const siteUrl = getSiteUrl();
@@ -22,7 +22,7 @@ export default function JsonLd() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
-    alternateName: SITE_TAGLINE,
+    alternateName: SITE_TITLE,
     url: siteUrl,
     inLanguage: "ja-JP",
     description: SITE_DESCRIPTION,

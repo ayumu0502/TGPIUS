@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -11,10 +12,11 @@ import { RANKING_CATEGORIES } from "@/lib/rankings/constants";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import type { RankingCategory, RankingFilters as RankingFiltersType, RankingPeriod } from "@/types/rankings";
 
-export const metadata: Metadata = {
-  title: "ランキング | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ランキング",
   description: "選手の応援ランキングをチェック",
-};
+  path: "/rankings",
+});
 
 type RankingsPageProps = {
   searchParams: Promise<{

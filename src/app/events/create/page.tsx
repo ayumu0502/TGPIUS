@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireApprovedAthlete } from "@/app/actions/athlete-access";
@@ -6,10 +7,11 @@ import EventCreateForm from "@/components/events/EventCreateForm";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "イベント作成 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "イベント作成",
   description: "新しいイベントを作成",
-};
+  path: "/events/create",
+});
 
 export default async function EventCreatePage() {
   const profile = await requireApprovedAthlete();

@@ -4,15 +4,14 @@ import { getCurrentProfile } from "@/app/actions/auth";
 import { getCurrentUserSupporterAccess } from "@/lib/subscription/access";
 import { exclusiveContent } from "@/lib/landing/data";
 import { SUPPORTER_PLAN } from "@/lib/stripe/plans";
-import { createPageMetadata } from "@/lib/seo/metadata";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata = createPageMetadata({
+export const metadata = createPrivatePageMetadata({
   title: "限定コンテンツ",
   description: "TGPLUSサポーター限定の特別コンテンツ",
   path: "/fan/exclusive",
-  noIndex: true,
 });
 
 export default async function FanExclusivePage() {

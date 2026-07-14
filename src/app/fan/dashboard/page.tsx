@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import {
@@ -17,10 +18,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { PremiumRightSidebar } from "@/components/layout/premium/PremiumWidgets";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "ファンダッシュボード | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ファンダッシュボード",
   description: "推しのアスリートを応援し、ギフトやイベントに参加しましょう。",
-};
+  path: "/fan/dashboard",
+});
 
 export default async function FanDashboardPage() {
   const profile = await getCurrentProfile();

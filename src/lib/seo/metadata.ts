@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { getSiteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/seo/site";
+import {
+  getSiteUrl,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+} from "@/lib/seo/site";
 
 type PageMetadataOptions = {
   title: string;
@@ -38,10 +43,10 @@ export function createPageMetadata({
       description,
       images: [
         {
-          url: "/opengraph-image",
+          url: `${siteUrl}/opengraph-image`,
           width: 1200,
           height: 630,
-          alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
+          alt: SITE_TITLE,
         },
       ],
     },
@@ -49,7 +54,7 @@ export function createPageMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: ["/opengraph-image"],
+      images: [`${siteUrl}/opengraph-image`],
     },
     robots: noIndex
       ? { index: false, follow: false }
@@ -60,36 +65,65 @@ export function createPageMetadata({
   };
 }
 
+/** Metadata for authenticated or utility pages that must not appear in search results. */
+export function createPrivatePageMetadata(
+  options: Omit<PageMetadataOptions, "noIndex">
+): Metadata {
+  return createPageMetadata({ ...options, noIndex: true });
+}
+
+export function createProfileMetadata({
+  name,
+  description,
+  path,
+}: {
+  name: string;
+  description?: string;
+  path: string;
+}): Metadata {
+  return createPrivatePageMetadata({
+    title: name,
+    description: description || `${name}のプロフィール`,
+    path,
+    ogType: "profile",
+  });
+}
+
+const siteUrl = getSiteUrl();
+
 export const rootMetadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: SITE_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   manifest: "/manifest.json",
   alternates: {
-    canonical: getSiteUrl(),
+    canonical: siteUrl,
   },
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    url: getSiteUrl(),
+    url: siteUrl,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: "/opengraph-image",
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
+        alt: SITE_TITLE,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/opengraph-image"],
+    images: [`${siteUrl}/opengraph-image`],
   },
   robots: {
     index: true,

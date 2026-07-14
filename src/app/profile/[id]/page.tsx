@@ -10,6 +10,7 @@ import { PremiumRightSidebar } from "@/components/layout/premium/PremiumWidgets"
 import AthleteProfilePage from "@/components/profile/AthleteProfilePage";
 import AthleteProfileSidebar from "@/components/profile/AthleteProfileSidebar";
 import PremiumProfileView from "@/components/profile/PremiumProfileView";
+import { createProfileMetadata } from "@/lib/seo/metadata";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import type { AccountType } from "@/types/auth";
 
@@ -22,10 +23,17 @@ export async function generateMetadata({
 }: ProfilePageProps): Promise<Metadata> {
   const { id } = await params;
   const profile = await getPublicProfile(id);
-  return {
-    title: profile ? `${profile.name} | TGPLUS` : "プロフィール | TGPLUS",
-    description: profile?.bio || `${profile?.name ?? ""}のプロフィール`,
-  };
+  if (!profile) {
+    return createProfileMetadata({
+      name: "プロフィール",
+      path: `/profile/${id}`,
+    });
+  }
+  return createProfileMetadata({
+    name: profile.name,
+    description: profile.bio || `${profile.name}のプロフィール`,
+    path: `/profile/${id}`,
+  });
 }
 
 function canSendGift(

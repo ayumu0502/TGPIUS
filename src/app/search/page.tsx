@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -16,10 +17,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import type { SearchFilters as SearchFiltersType, SearchSort } from "@/types/search";
 
-export const metadata: Metadata = {
-  title: "検索・発見 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "検索・発見",
   description: "選手やユーザーを検索して、推しを見つけよう",
-};
+  path: "/search",
+});
 
 type SearchPageProps = {
   searchParams: Promise<{

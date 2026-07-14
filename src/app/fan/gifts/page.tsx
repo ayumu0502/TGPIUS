@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -14,10 +15,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import { formatPoints } from "@/lib/gifts/constants";
 
-export const metadata: Metadata = {
-  title: "ギフト | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ギフト",
   description: "アスリートへポイントギフトを送る",
-};
+  path: "/fan/gifts",
+});
 
 export default async function FanGiftsPage() {
   const profile = await getCurrentProfile();

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import {
@@ -8,10 +9,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import NotificationList from "@/components/notifications/NotificationList";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "通知 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "通知",
   description: "いいね・コメント・ギフト・DMなどの通知",
-};
+  path: "/notifications",
+});
 
 export default async function NotificationsPage() {
   const profile = await getCurrentProfile();

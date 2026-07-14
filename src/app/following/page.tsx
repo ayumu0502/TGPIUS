@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -12,10 +13,11 @@ import RecommendedAthletes from "@/components/follows/RecommendedAthletes";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "フォロー中 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "フォロー中",
   description: "フォロー中の選手・ユーザーを管理",
-};
+  path: "/following",
+});
 
 export default async function FollowingPage() {
   const profile = await getCurrentProfile();

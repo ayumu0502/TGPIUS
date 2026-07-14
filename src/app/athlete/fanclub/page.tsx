@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireApprovedAthlete } from "@/app/actions/athlete-access";
@@ -13,10 +14,11 @@ import {
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "ファンクラブ管理 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ファンクラブ管理",
   description: "月額プランと会員を管理",
-};
+  path: "/athlete/fanclub",
+});
 
 export default async function AthleteFanclubPage() {
   const profile = await requireApprovedAthlete();

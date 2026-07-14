@@ -9,15 +9,14 @@ import { requireAthleteApplicant } from "@/app/actions/athlete-access";
 import { isApprovedAthlete, canSubmitAthleteApplication } from "@/lib/athlete/status";
 import AthleteApplicationForm from "@/components/athlete/AthleteApplicationForm";
 import { AuthLogo } from "@/components/auth/AuthBackground";
-import { createPageMetadata } from "@/lib/seo/metadata";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import AppFooter from "@/components/layout/AppFooter";
 import PageEnter from "@/components/ui/PageEnter";
 
-export const metadata: Metadata = createPageMetadata({
+export const metadata: Metadata = createPrivatePageMetadata({
   title: "選手申請",
   description: "TGPLUS アスリート審査申請",
   path: "/athlete/apply",
-  noIndex: true,
 });
 
 export default async function AthleteApplyPage() {

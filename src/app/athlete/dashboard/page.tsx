@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import {
   getAthleteGiftStats,
@@ -11,10 +12,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "アスリートダッシュボード | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "アスリートダッシュボード",
   description: "活動発信、ギフト管理、売上・出金を一元管理。",
-};
+  path: "/athlete/dashboard",
+});
 
 export default async function AthleteDashboardPage() {
   const profile = await requireApprovedAthlete();

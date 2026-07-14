@@ -9,16 +9,15 @@ import {
 } from "@/app/actions/subscription";
 import { fulfillSupporterCheckoutSession } from "@/lib/stripe/fulfill-subscription";
 import { SUPPORTER_PLAN } from "@/lib/stripe/plans";
-import { createPageMetadata } from "@/lib/seo/metadata";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import SupporterBillingHistory from "@/components/subscription/SupporterBillingHistory";
 import SupporterPlanCard from "@/components/subscription/SupporterPlanCard";
 import { AuthAlert } from "@/components/auth/AuthInput";
 
-export const metadata = createPageMetadata({
+export const metadata = createPrivatePageMetadata({
   title: "サポーター登録完了",
   description: "TGPLUSサポータープランへのご加入ありがとうございます",
   path: "/supporter/success",
-  noIndex: true,
 });
 
 type SuccessPageProps = {

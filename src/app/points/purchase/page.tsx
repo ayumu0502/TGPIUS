@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -12,10 +13,11 @@ import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import { getStripeCheckoutStatus } from "@/lib/stripe/config";
 import { formatPoints } from "@/lib/points/constants";
 
-export const metadata: Metadata = {
-  title: "ポイント購入 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ポイント購入",
   description: "ギフト送信に使えるポイントを購入",
-};
+  path: "/points/purchase",
+});
 
 export default async function PointPurchasePage() {
   const profile = await getCurrentProfile();

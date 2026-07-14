@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import { getRankingPreview } from "@/app/actions/rankings";
@@ -8,10 +9,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { PremiumRightSidebar } from "@/components/layout/premium/PremiumWidgets";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "フィード | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "フィード",
   description: "アスリートやファンの投稿をチェック",
-};
+  path: "/feed",
+});
 
 export default async function FeedPage() {
   const profile = await getCurrentProfile();

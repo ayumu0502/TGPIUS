@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -10,10 +11,11 @@ import EventList from "@/components/events/EventList";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "マイイベント | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "マイイベント",
   description: "参加中・作成したイベント",
-};
+  path: "/events/my",
+});
 
 export default async function MyEventsPage() {
   const profile = await getCurrentProfile();

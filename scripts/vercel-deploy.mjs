@@ -92,8 +92,8 @@ async function main() {
   console.log("Setting environment variables (production)...");
   const keys = Object.keys(all);
   for (const key of keys) {
-    if (key === "NEXT_PUBLIC_APP_URL" && all[key].includes("localhost")) {
-      all[key] = "https://tgpius.vercel.app";
+    if (key === "NEXT_PUBLIC_APP_URL") {
+      all[key] = "https://tgplus.jp";
     }
     try {
       vercelWithInput(`${all[key]}\n`, "env", "add", key, "production", "--force");

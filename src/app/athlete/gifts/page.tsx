@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import {
   getAthleteGiftStats,
@@ -11,10 +12,11 @@ import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import { formatPoints } from "@/lib/gifts/constants";
 
-export const metadata: Metadata = {
-  title: "ギフト受取履歴 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "ギフト受取履歴",
   description: "ファンから届いたギフトの履歴",
-};
+  path: "/athlete/gifts",
+});
 
 export default async function AthleteGiftsPage() {
   const profile = await requireApprovedAthlete();

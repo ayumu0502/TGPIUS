@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -7,10 +8,11 @@ import FanSubscriptionsList from "@/components/fanclub/FanSubscriptionsList";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "マイサブスク | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "マイサブスク",
   description: "加入中のファンクラブを管理",
-};
+  path: "/fan/subscriptions",
+});
 
 export default async function FanSubscriptionsPage() {
   const profile = await getCurrentProfile();

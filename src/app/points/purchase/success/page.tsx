@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
@@ -9,10 +10,11 @@ import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 import { formatPoints } from "@/lib/points/constants";
 import { fulfillCheckoutSessionAfterReturn } from "@/lib/stripe/fulfill-session";
 
-export const metadata: Metadata = {
-  title: "購入完了 | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "購入完了",
   description: "ポイント購入が完了しました",
-};
+  path: "/points/purchase/success",
+});
 
 type SuccessPageProps = {
   searchParams: Promise<{ session_id?: string }>;

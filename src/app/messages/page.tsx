@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import { getConversations } from "@/app/actions/messages";
@@ -8,10 +9,11 @@ import PremiumMessagesShell from "@/components/messages/PremiumMessagesShell";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
 
-export const metadata: Metadata = {
-  title: "メッセージ | TGPLUS",
+export const metadata: Metadata = createPrivatePageMetadata({
+  title: "メッセージ",
   description: "DM · ダイレクトメッセージ",
-};
+  path: "/messages",
+});
 
 type MessagesPageProps = {
   searchParams: Promise<{ error?: string }>;
