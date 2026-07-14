@@ -137,14 +137,15 @@ export default function AdminDashboardContent({
       </DashboardSection>
 
       <DashboardSection
-        title={searchQuery ? "検索結果" : "ユーザー一覧"}
-        description={
-          searchQuery
-            ? `「${searchQuery}」の検索結果（ポイント残高付き）`
-            : "最近登録されたユーザーとポイント残高"
+        title="ユーザー管理"
+        description="検索・停止・再開はユーザー管理ページで"
+        action={
+          <Link href="/admin/users" className="btn-gold rounded-full px-5 py-2.5 text-sm">
+            ユーザー一覧
+          </Link>
         }
       >
-        <AdminUserTable users={users} searchQuery={searchQuery} />
+        <AdminUserTable users={users.slice(0, 8)} searchQuery={searchQuery} />
       </DashboardSection>
 
       <DashboardSection

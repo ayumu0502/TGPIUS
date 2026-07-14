@@ -14,14 +14,16 @@ export default function AdminPayoutPanel({ requests }: AdminPayoutPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string, athleteName: string, amount: number) => {
+    if (!window.confirm(`${athleteName} への出金 ${amount}pt を承認しますか？`)) return;
     startTransition(async () => {
       await approvePayoutRequest(id);
       router.refresh();
     });
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = (id: string, athleteName: string) => {
+    if (!window.confirm(`${athleteName} の出金申請を却下しますか？`)) return;
     startTransition(async () => {
       await rejectPayoutRequest(id);
       router.refresh();
@@ -58,7 +60,9 @@ export default function AdminPayoutPanel({ requests }: AdminPayoutPanelProps) {
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() => handleApprove(req.id)}
+                  onClick={() =>
+                    handleApprove(req.id, req.athlete_name ?? "アスリート", req.amount)
+                  }
                   className="btn-gold rounded-full px-4 py-2 text-xs disabled:opacity-50"
                 >
                   承認（振込済み）
@@ -66,7 +70,7 @@ export default function AdminPayoutPanel({ requests }: AdminPayoutPanelProps) {
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() => handleReject(req.id)}
+                  onClick={() => handleReject(req.id, req.athlete_name ?? "アスリート")}
                   className="btn-gold-outline rounded-full px-4 py-2 text-xs disabled:opacity-50"
                 >
                   却下

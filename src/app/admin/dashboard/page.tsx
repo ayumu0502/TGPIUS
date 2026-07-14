@@ -9,12 +9,10 @@ import {
   getRecentSales,
   getRecentUsers,
   getSubscriptionStats,
-  requireAdmin,
   searchUsers,
 } from "@/app/actions/admin";
 import { getAdminFanclubAnalytics } from "@/app/actions/fanclub";
 import AdminDashboardContent from "@/components/admin/AdminDashboardContent";
-import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { createPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = createPageMetadata({
@@ -31,7 +29,6 @@ type AdminDashboardPageProps = {
 export default async function AdminDashboardPage({
   searchParams,
 }: AdminDashboardPageProps) {
-  const profile = await requireAdmin();
   const { q } = await searchParams;
   const searchQuery = q?.trim() ?? "";
 
@@ -50,20 +47,18 @@ export default async function AdminDashboardPage({
     ]);
 
   return (
-    <AdminDashboardLayout name={profile.name} email={profile.email}>
-      <AdminDashboardContent
-        stats={stats}
-        users={users}
-        sales={sales}
-        purchases={purchases}
-        gifts={gifts}
-        fanclubAnalytics={fanclubAnalytics}
-        searchQuery={searchQuery}
-        pendingPayouts={pendingPayouts}
-        subscriptionStats={subscriptionStats}
-        failedPayments={failedPayments}
-        athleteEarnings={athleteEarnings}
-      />
-    </AdminDashboardLayout>
+    <AdminDashboardContent
+      stats={stats}
+      users={users}
+      sales={sales}
+      purchases={purchases}
+      gifts={gifts}
+      fanclubAnalytics={fanclubAnalytics}
+      searchQuery={searchQuery}
+      pendingPayouts={pendingPayouts}
+      subscriptionStats={subscriptionStats}
+      failedPayments={failedPayments}
+      athleteEarnings={athleteEarnings}
+    />
   );
 }

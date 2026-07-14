@@ -80,3 +80,73 @@ export type AdminActionState = {
   error?: string;
   success?: string;
 };
+
+export type AdminReport = {
+  id: string;
+  reporter_name: string;
+  reported_name: string;
+  reason: string;
+  context_type: string;
+  status: string;
+  created_at: string;
+};
+
+export type AdminBlock = {
+  id: string;
+  blocker_name: string;
+  blocked_name: string;
+  created_at: string;
+};
+
+export type AdminPost = {
+  id: string;
+  user_name: string;
+  caption: string;
+  media_type: string;
+  created_at: string;
+};
+
+export type AdminComment = {
+  id: string;
+  user_name: string;
+  post_id: string;
+  content: string;
+  created_at: string;
+};
+
+export type AdminEvent = {
+  id: string;
+  creator_name: string;
+  title: string;
+  starts_at: string;
+  status: string;
+  capacity: number;
+  fee_points: number;
+};
+
+export type AdminExclusivePost = {
+  id: string;
+  athlete_name: string;
+  title: string;
+  post_type: string;
+  is_members_only: boolean;
+  created_at: string;
+};
+
+export type AdminAuditEntry = {
+  id: string;
+  admin_name: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  note: string;
+  created_at: string;
+};
+
+export type AdminRefund = {
+  id: string;
+  user_name: string;
+  amount_yen: number;
+  description: string;
+  created_at: string;
+};

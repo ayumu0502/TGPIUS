@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listAthleteApplications } from "@/app/actions/admin-applications";
-import { requireAdmin } from "@/app/actions/admin";
 import AdminAthleteApplications from "@/components/admin/AdminAthleteApplications";
-import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { createPageMetadata } from "@/lib/seo/metadata";
 import type { AthleteReviewStatus } from "@/types/athlete-application";
 
@@ -37,7 +35,6 @@ function parseStatus(value: string | undefined): AthleteReviewStatus | "all" {
 export default async function AdminApplicationsPage({
   searchParams,
 }: AdminApplicationsPageProps) {
-  const profile = await requireAdmin();
   const { q, status } = await searchParams;
   const searchQuery = q?.trim() ?? "";
   const statusFilter = parseStatus(status);
@@ -48,7 +45,7 @@ export default async function AdminApplicationsPage({
   });
 
   return (
-    <AdminDashboardLayout name={profile.name} email={profile.email}>
+    <>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="ja-heading text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
@@ -62,7 +59,7 @@ export default async function AdminApplicationsPage({
           href="/admin/dashboard"
           className="text-sm text-[var(--text-muted)] hover:text-[var(--gold-dark)] hover:underline"
         >
-          管理コンソールへ戻る
+          概要へ戻る
         </Link>
       </div>
 
@@ -71,6 +68,6 @@ export default async function AdminApplicationsPage({
         initialStatus={statusFilter}
         searchQuery={searchQuery}
       />
-    </AdminDashboardLayout>
+    </>
   );
 }

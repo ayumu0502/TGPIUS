@@ -301,6 +301,8 @@ export async function broadcastAdminAnnouncement(
   }
 
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/announcements");
+  revalidatePath("/admin/audit");
   revalidatePath("/notifications");
 
   return {
@@ -332,6 +334,8 @@ export async function setUserSuspended(
   }
 
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/audit");
 
   return {
     success: suspended

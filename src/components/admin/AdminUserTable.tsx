@@ -26,7 +26,18 @@ function SuspendButton({
   const [state, formAction, isPending] = useActionState(setUserSuspended, null);
 
   return (
-    <form action={formAction} className="inline">
+    <form
+      action={formAction}
+      className="inline"
+      onSubmit={(event) => {
+        const message = suspended
+          ? "このユーザーのアカウントを再開しますか？"
+          : "このユーザーのアカウントを停止しますか？";
+        if (!window.confirm(message)) {
+          event.preventDefault();
+        }
+      }}
+    >
       <input type="hidden" name="user_id" value={userId} />
       <input type="hidden" name="suspended" value={suspended ? "false" : "true"} />
       <button
