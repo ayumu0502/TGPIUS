@@ -72,6 +72,27 @@ export default function PremiumLayout({
 
   const sections = [...new Set(sidebarItems.map((i) => i.section).filter(Boolean))];
 
+  const topNavLinks = (
+    <>
+      {topItems.map((item) => {
+        const href = resolveHref(item, currentUser.id, currentUser.accountType);
+        const isActive = activeNav === item.id;
+        return (
+          <Link key={item.id} href={href} className={topNavLinkClass(isActive)}>
+            <NavIcon name={item.icon} className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">{item.label}</span>
+          </Link>
+        );
+      })}
+      {isAdmin ? (
+        <Link href="/admin/dashboard" className={topNavLinkClass(false)}>
+          <NavIcon name="user" className="h-4 w-4 shrink-0" />
+          <span className="whitespace-nowrap">管理画面</span>
+        </Link>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="premium-app flex min-h-screen bg-[#f7f8fa]">
       {sidebarOpen ? (
@@ -198,33 +219,9 @@ export default function PremiumLayout({
               <IconMenu />
             </button>
 
-            <nav
-              className="hidden min-w-0 flex-1 lg:block"
-              aria-label="メインナビゲーション"
-            >
-              <div className="premium-topnav-scroll h-10 max-w-full">
-                {topItems.map((item) => {
-                  const href = resolveHref(item, currentUser.id, currentUser.accountType);
-                  const isActive = activeNav === item.id;
-                  return (
-                    <Link
-                      key={item.id}
-                      href={href}
-                      className={topNavLinkClass(isActive)}
-                    >
-                      <NavIcon name={item.icon} className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-                {isAdmin ? (
-                  <Link href="/admin/dashboard" className={topNavLinkClass(false)}>
-                    <NavIcon name="user" className="h-4 w-4 shrink-0" />
-                    <span>管理画面</span>
-                  </Link>
-                ) : null}
-              </div>
-            </nav>
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)] lg:hidden">
+              TGPLUS
+            </p>
 
             <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Link
@@ -280,6 +277,15 @@ export default function PremiumLayout({
               />
             </div>
           </div>
+
+          <nav
+            className="hidden border-t border-[#e8eaed] lg:block"
+            aria-label="メインナビゲーション"
+          >
+            <div className="premium-topnav-scroll h-11 w-full px-3 sm:px-4 lg:px-6">
+              {topNavLinks}
+            </div>
+          </nav>
         </header>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

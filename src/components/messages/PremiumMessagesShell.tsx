@@ -13,7 +13,7 @@ export default function PremiumMessagesShell({
   activeConversationId,
 }: PremiumMessagesShellProps) {
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:flex-row">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:min-h-[calc(100dvh-6.75rem)] lg:flex-row">
       {activeConversationId ? (
         <div className="flex items-center gap-2 border-b border-[var(--card-border)] bg-white px-4 py-3 lg:hidden">
           <BackButton />
