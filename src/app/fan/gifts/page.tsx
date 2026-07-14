@@ -50,7 +50,7 @@ export default async function FanGiftsPage() {
           <StatCard
             label="ポイント残高"
             value={formatPoints(stats.pointBalance)}
-            sub="テスト用ポイント"
+            sub="ギフト送信用"
             highlight
           />
           <StatCard

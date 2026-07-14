@@ -42,12 +42,17 @@ export default async function AthleteGiftsPage() {
       messageUnreadCount={layoutCounts.messageUnreadCount}
     >
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:space-y-8 lg:px-8">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             label="受取合計"
             value={formatPoints(stats.totalReceived)}
-            sub="累計ポイント"
+            sub="累計ポイント（総額）"
             highlight
+          />
+          <StatCard
+            label="確定売上"
+            value={formatPoints(stats.pointBalance)}
+            sub="手数料控除後・出金可能"
           />
           <StatCard
             label="受取回数"

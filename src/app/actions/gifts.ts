@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { logGift, logGiftError } from "@/lib/gifts/gift-log";
 import { createClient } from "@/lib/supabase/server";
 import {
   GIFT_AMOUNTS,
@@ -160,18 +161,18 @@ export async function getAthleteGiftStats(): Promise<GiftStats> {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("gifts")
-    .select("amount")
-    .eq("receiver_id", current.id);
+  const [giftsRes, profileRes] = await Promise.all([
+    supabase.from("gifts").select("amount").eq("receiver_id", current.id),
+    supabase.from("profiles").select("earnings_balance").eq("id", current.id).maybeSingle(),
+  ]);
 
-  const gifts = data ?? [];
+  const gifts = giftsRes.data ?? [];
   const totalReceived = gifts.reduce((sum, gift) => sum + Number(gift.amount), 0);
 
   return {
     totalReceived,
     giftCount: gifts.length,
-    pointBalance: 0,
+    pointBalance: Number(profileRes.data?.earnings_balance ?? 0),
   };
 }
 
@@ -222,6 +223,12 @@ export async function sendGift(
   const supabase = await createClient();
   const idempotencyKey = String(formData.get("idempotency_key") ?? "").trim();
 
+  logGift("send started", {
+    receiver_id: receiverId.slice(0, 8) + "...",
+    amount: amountValue,
+    has_idempotency_key: Boolean(idempotencyKey),
+  });
+
   const rpcArgs = {
     p_receiver_id: receiverId,
     p_amount: amountValue,
@@ -232,6 +239,10 @@ export async function sendGift(
   let { data, error } = await supabase.rpc("send_gift", rpcArgs);
 
   if (error && idempotencyKey && /p_idempotency_key|send_gift\(/i.test(error.message)) {
+    logGift("idempotency RPC unavailable, retrying legacy send_gift", {
+      receiver_id: receiverId.slice(0, 8) + "...",
+      amount: amountValue,
+    });
     ({ data, error } = await supabase.rpc("send_gift", {
       p_receiver_id: receiverId,
       p_amount: amountValue,
@@ -240,17 +251,32 @@ export async function sendGift(
   }
 
   if (error) {
+    logGiftError("send failed", error, {
+      receiver_id: receiverId.slice(0, 8) + "...",
+      amount: amountValue,
+    });
     return { error: translateGiftError(error.message) };
   }
 
   if (!data) {
+    logGift("send returned empty gift id", {
+      receiver_id: receiverId.slice(0, 8) + "...",
+      amount: amountValue,
+    });
     return { error: "ギフトの送信に失敗しました" };
   }
+
+  logGift("send completed", {
+    gift_id: String(data).slice(0, 8) + "...",
+    amount: amountValue,
+  });
 
   revalidatePath("/fan/gifts");
   revalidatePath("/fan/dashboard");
   revalidatePath("/athlete/gifts");
   revalidatePath("/athlete/dashboard");
+  revalidatePath("/athlete/earnings");
+  revalidatePath("/admin/dashboard");
   revalidatePath(`/gift/send/${receiverId}`);
   revalidatePath(`/profile/${receiverId}`);
 
