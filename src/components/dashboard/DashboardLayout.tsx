@@ -2,6 +2,7 @@ import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import AppFooter from "@/components/layout/AppFooter";
 import { AuthLogo } from "@/components/auth/AuthBackground";
+import BackButton from "@/components/ui/BackButton";
 import type { AccountType } from "@/types/auth";
 import type { ReactNode } from "react";
 
@@ -27,8 +28,11 @@ export default function DashboardLayout({
   return (
     <div className="premium-app relative flex min-h-screen flex-col bg-[#f7f8fa]">
       <header className="premium-shell-header sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <AuthLogo theme="light" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <BackButton />
+            <AuthLogo theme="light" />
+          </div>
           <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/feed"

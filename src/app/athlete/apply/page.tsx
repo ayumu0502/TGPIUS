@@ -9,6 +9,7 @@ import { requireAthleteApplicant } from "@/app/actions/athlete-access";
 import { isApprovedAthlete, canSubmitAthleteApplication } from "@/lib/athlete/status";
 import AthleteApplicationForm from "@/components/athlete/AthleteApplicationForm";
 import { AuthLogo } from "@/components/auth/AuthBackground";
+import BackButton from "@/components/ui/BackButton";
 import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import AppFooter from "@/components/layout/AppFooter";
 import PageEnter from "@/components/ui/PageEnter";
@@ -32,8 +33,11 @@ export default async function AthleteApplyPage() {
   return (
     <div className="premium-app relative flex min-h-screen flex-col bg-[#f7f8fa]">
       <header className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <AuthLogo theme="light" />
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <BackButton />
+            <AuthLogo theme="light" />
+          </div>
           <form action={logout}>
             <button
               type="submit"

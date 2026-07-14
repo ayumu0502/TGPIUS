@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { LegalPageContent } from "@/lib/legal/content";
 import LegalFooterLinks from "./LegalFooterLinks";
+import BackButton from "@/components/ui/BackButton";
 
 type LegalPageLayoutProps = {
   content: LegalPageContent;
@@ -42,10 +43,13 @@ export default function LegalPageLayout({ content }: LegalPageLayoutProps) {
   return (
     <div className="min-h-screen bg-[var(--content-bg)]">
       <header className="border-b border-[var(--card-border)] bg-white/92 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-6">
-          <Link href="/" className="text-lg font-bold tracking-[0.15em] text-[var(--text-primary)]">
-            TGPLUS
-          </Link>
+        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-3 px-6">
+          <div className="flex items-center gap-2">
+            <BackButton />
+            <Link href="/" className="text-lg font-bold tracking-[0.15em] text-[var(--text-primary)]">
+              TGPLUS
+            </Link>
+          </div>
           <Link
             href="/login"
             className="text-sm text-[var(--text-muted)] transition hover:text-[var(--gold-dark)]"

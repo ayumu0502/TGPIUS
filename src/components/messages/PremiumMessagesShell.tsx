@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import BackButton from "@/components/ui/BackButton";
 
 type PremiumMessagesShellProps = {
   children: ReactNode;
@@ -15,13 +15,8 @@ export default function PremiumMessagesShell({
   return (
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:flex-row">
       {activeConversationId ? (
-        <div className="flex items-center border-b border-[var(--card-border)] bg-white px-4 py-3 lg:hidden">
-          <Link
-            href="/messages"
-            className="text-sm font-medium text-[var(--gold-dark)] transition-colors hover:text-[var(--gold)]"
-          >
-            ← 一覧に戻る
-          </Link>
+        <div className="flex items-center gap-2 border-b border-[var(--card-border)] bg-white px-4 py-3 lg:hidden">
+          <BackButton />
         </div>
       ) : null}
 

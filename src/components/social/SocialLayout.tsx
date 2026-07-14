@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthLogo } from "@/components/auth/AuthBackground";
+import BackButton from "@/components/ui/BackButton";
 import type { AccountType } from "@/types/auth";
 
 const accountTypeLabels: Record<AccountType, string> = {
@@ -36,8 +37,11 @@ export default function SocialLayout({
   return (
     <div className="relative flex min-h-screen flex-col bg-[var(--content-bg)] pb-20">
       <header className="sticky top-0 z-40 border-b border-[var(--card-border)] bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-          <AuthLogo />
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-2 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <BackButton />
+            <AuthLogo />
+          </div>
           <Link
             href={dashboardPath}
             className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--gold-dark)]"

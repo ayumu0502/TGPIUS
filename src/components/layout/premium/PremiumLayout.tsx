@@ -6,6 +6,7 @@ import { useState } from "react";
 import { NavIcon, IconBell, IconSearch, IconMenu, IconClose } from "@/components/layout/premium/PremiumIcons";
 import PremiumUserMenu, { LogoutButton } from "@/components/layout/premium/PremiumUserMenu";
 import AppFooter from "@/components/layout/AppFooter";
+import BackButton from "@/components/ui/BackButton";
 import {
   filterNavForRole,
   getDashboardPath,
@@ -177,7 +178,8 @@ export default function PremiumLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="premium-shell-header sticky top-0 z-30 border-b border-[#e8eaed] bg-white/95 backdrop-blur-xl">
-          <div className="flex h-14 items-center gap-4 px-4 lg:px-6">
+          <div className="flex h-14 items-center gap-2 px-4 sm:gap-3 lg:px-6">
+            <BackButton showLabel />
             <button
               type="button"
               className="text-[var(--text-muted)] lg:hidden"
