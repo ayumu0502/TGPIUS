@@ -303,6 +303,29 @@ async function tryApplyAdminAthleteHotfix() {
   return response.ok;
 }
 
+async function tryApplyPgcryptoHotfix() {
+  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
+  if (!token) return false;
+
+  const sql = readFileSync(
+    resolve(process.cwd(), "supabase/athlete-invite-pgcrypto-hotfix.sql"),
+    "utf8"
+  );
+  const projectRef = process.env.SUPABASE_PROJECT_REF?.trim() || "mctpdumewffwhleggpjt";
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: sql }),
+    }
+  );
+  return response.ok;
+}
+
 async function adminReview(adminClient, applicationId, action, note = "E2E") {
   let { error } = await adminClient.rpc("admin_review_athlete_application", {
     p_application_id: applicationId,
@@ -675,6 +698,11 @@ if (approvedAthlete?.id && fanRow?.id) {
 // 7. Athlete invite & organizations
 // ---------------------------------------------------------------------------
 console.log("\n7. 選手招待・組織");
+
+const pgcryptoHotfixApplied = await tryApplyPgcryptoHotfix();
+if (pgcryptoHotfixApplied) {
+  ok("athlete-invite pgcrypto hotfix applied");
+}
 
 assert(await tableReadable("organizations"), "organizations table");
 assert(await tableReadable("athlete_provisional_profiles"), "athlete_provisional_profiles table");

@@ -1,7 +1,7 @@
 -- Athlete invite, provisional profiles, and organizations for TGPLUS
 -- Run AFTER athlete-application-schema.sql
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ---------------------------------------------------------------------------
 -- Enums
@@ -225,7 +225,7 @@ returns text
 language sql
 immutable
 as $$
-  select encode(digest(p_token, 'sha256'), 'hex');
+  select encode(extensions.digest(p_token, 'sha256'), 'hex');
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -301,7 +301,7 @@ begin
     );
   end if;
 
-  v_token := coalesce(nullif(trim(p_token), ''), encode(gen_random_bytes(24), 'hex'));
+  v_token := coalesce(nullif(trim(p_token), ''), encode(extensions.gen_random_bytes(24), 'hex'));
   v_expires := coalesce(p_expires_at, now() + interval '14 days');
 
   insert into public.athlete_invites (
@@ -487,7 +487,7 @@ begin
     raise exception 'INVITE_NOT_FOUND';
   end if;
 
-  v_token := coalesce(nullif(trim(p_new_token), ''), encode(gen_random_bytes(24), 'hex'));
+  v_token := coalesce(nullif(trim(p_new_token), ''), encode(extensions.gen_random_bytes(24), 'hex'));
 
   update public.athlete_invites
   set
@@ -772,13 +772,13 @@ $$;
 -- Grants
 -- ---------------------------------------------------------------------------
 
-grant execute on function public.hash_invite_token(text) to authenticated;
+grant execute on function public.hash_invite_token(text) to anon, authenticated, service_role;
 grant execute on function public.admin_create_provisional_athlete(
   text, text, text, text, text, text, text, text, text, text, boolean,
   public.athlete_review_status, text, uuid, text, timestamptz
 ) to authenticated;
-grant execute on function public.get_athlete_invite_public(text) to anon, authenticated;
-grant execute on function public.complete_athlete_invite_registration(text, uuid) to authenticated;
+grant execute on function public.get_athlete_invite_public(text) to anon, authenticated, service_role;
+grant execute on function public.complete_athlete_invite_registration(text, uuid) to authenticated, service_role;
 grant execute on function public.admin_send_athlete_invite(uuid, text, timestamptz) to authenticated;
 grant execute on function public.admin_cancel_athlete_invite(uuid) to authenticated;
 grant execute on function public.admin_update_organization_membership(uuid, public.membership_status) to authenticated;
