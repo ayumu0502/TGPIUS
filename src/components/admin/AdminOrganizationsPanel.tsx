@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 import { upsertOrganization } from "@/app/actions/admin-athletes";
 import { AuthAlert } from "@/components/auth/AuthInput";
+import AdminOrganizationMembers, {
+  type OrganizationMemberRow,
+} from "@/components/admin/AdminOrganizationMembers";
 import {
   ORGANIZATION_STATUS_LABELS,
   ORGANIZATION_TYPE_LABELS,
@@ -14,10 +17,12 @@ import {
 
 type AdminOrganizationsPanelProps = {
   organizations: Organization[];
+  membersByOrg: Record<string, OrganizationMemberRow[]>;
 };
 
 export default function AdminOrganizationsPanel({
   organizations,
+  membersByOrg,
 }: AdminOrganizationsPanelProps) {
   const [state, formAction, isPending] = useActionState<
     AdminAthleteFormState | null,
@@ -61,6 +66,11 @@ export default function AdminOrganizationsPanel({
                 </p>
               </div>
             </div>
+            <AdminOrganizationMembers
+              organizationId={org.id}
+              organizationName={org.name}
+              members={membersByOrg[org.id] ?? []}
+            />
           </article>
         ))}
       </div>

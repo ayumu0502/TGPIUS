@@ -390,19 +390,56 @@ export async function bulkImportAthletes(
   };
 }
 
-export async function listOrganizationAthletes(organizationId: string) {
+export async function listAllOrganizationMembers(): Promise<
+  Record<string, import("@/components/admin/AdminOrganizationMembers").OrganizationMemberRow[]>
+> {
   await requireAdmin();
   const supabase = await createClient();
 
   const { data } = await supabase
     .from("athlete_organization_memberships")
     .select(
-      "id, membership_status, joined_at, athlete_user_id, provisional_profile_id, profiles(name, email, sport), athlete_provisional_profiles(full_name, email, sport, linked_user_id)"
+      "id, organization_id, membership_status, joined_at, athlete_user_id, provisional_profile_id, profiles(name, email, sport), athlete_provisional_profiles(full_name, email, sport, linked_user_id)"
     )
-    .eq("organization_id", organizationId)
     .order("joined_at", { ascending: false });
 
-  return data ?? [];
+  const grouped: Record<
+    string,
+    import("@/components/admin/AdminOrganizationMembers").OrganizationMemberRow[]
+  > = {};
+
+  for (const row of data ?? []) {
+    const orgId = String(row.organization_id);
+    const profile = row.profiles as { name?: string; email?: string; sport?: string } | null;
+    const provisional = row.athlete_provisional_profiles as {
+      full_name?: string;
+      email?: string;
+      sport?: string;
+      linked_user_id?: string | null;
+    } | null;
+
+    const member = {
+      membershipId: String(row.id),
+      membershipStatus: row.membership_status as MembershipStatus,
+      joinedAt: String(row.joined_at),
+      athleteName: profile?.name ?? provisional?.full_name ?? "（未登録）",
+      email: profile?.email ?? provisional?.email ?? "",
+      sport: profile?.sport ?? provisional?.sport ?? "",
+      linkedUserId: row.athlete_user_id
+        ? String(row.athlete_user_id)
+        : provisional?.linked_user_id
+          ? String(provisional.linked_user_id)
+          : null,
+      provisionalProfileId: row.provisional_profile_id
+        ? String(row.provisional_profile_id)
+        : null,
+    };
+
+    if (!grouped[orgId]) grouped[orgId] = [];
+    grouped[orgId].push(member);
+  }
+
+  return grouped;
 }
 
 export async function getInviteUrlForProvisional(
