@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tgplus-v6";
+const CACHE_VERSION = "tgplus-v7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline";
 

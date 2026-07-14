@@ -1,3 +1,4 @@
+/* Production stylesheet entry — Tailwind v4 */
 @import "tailwindcss";
 @import "./landing.css";
 @config "../../tailwind.config.ts";
