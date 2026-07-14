@@ -41,6 +41,14 @@ function resolveHref(item: { href: string; id: PremiumNavId }, userId: string, a
   return item.href;
 }
 
+function topNavLinkClass(isActive: boolean) {
+  return `premium-topnav-link ${
+    isActive
+      ? "topnav-active bg-[rgba(197,160,89,0.08)] font-medium text-[var(--gold-dark)]"
+      : "text-[var(--text-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]"
+  }`;
+}
+
 export default function PremiumLayout({
   children,
   rightSidebar,
@@ -178,46 +186,47 @@ export default function PremiumLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="premium-shell-header sticky top-0 z-30 border-b border-[#e8eaed] bg-white/95 backdrop-blur-xl">
-          <div className="flex h-14 items-center gap-2 px-4 sm:gap-3 lg:px-6">
-            <BackButton showLabel />
+          <div className="flex h-14 min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6">
+            <BackButton className="shrink-0" />
+
             <button
               type="button"
-              className="text-[var(--text-muted)] lg:hidden"
+              className="shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--gold-dark)] lg:hidden"
               onClick={() => setSidebarOpen(true)}
               aria-label="メニュー"
             >
               <IconMenu />
             </button>
 
-            <nav className="hidden flex-1 items-center gap-1 md:flex">
-              {topItems.map((item) => {
-                const href = resolveHref(item, currentUser.id, currentUser.accountType);
-                const isActive = activeNav === item.id;
-                return (
-                  <Link
-                    key={item.id}
-                    href={href}
-                    className={`px-4 py-4 text-sm transition-colors ${
-                      isActive
-                        ? "topnav-active font-medium"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    {item.label}
+            <nav
+              className="hidden min-w-0 flex-1 lg:block"
+              aria-label="メインナビゲーション"
+            >
+              <div className="premium-topnav-scroll h-10 max-w-full">
+                {topItems.map((item) => {
+                  const href = resolveHref(item, currentUser.id, currentUser.accountType);
+                  const isActive = activeNav === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={href}
+                      className={topNavLinkClass(isActive)}
+                    >
+                      <NavIcon name={item.icon} className="h-4 w-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+                {isAdmin ? (
+                  <Link href="/admin/dashboard" className={topNavLinkClass(false)}>
+                    <NavIcon name="user" className="h-4 w-4 shrink-0" />
+                    <span>管理画面</span>
                   </Link>
-                );
-              })}
-              {isAdmin ? (
-                <Link
-                  href="/admin/dashboard"
-                  className="px-4 py-4 text-sm font-medium text-[var(--gold-dark)] transition-colors hover:text-[var(--gold)]"
-                >
-                  管理画面
-                </Link>
-              ) : null}
+                ) : null}
+              </div>
             </nav>
 
-            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Link
                 href="/search"
                 className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--sidebar-hover)] hover:text-[var(--gold-dark)]"
