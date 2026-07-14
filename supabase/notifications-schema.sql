@@ -12,7 +12,8 @@ create table if not exists public.notifications (
       'dm',
       'follow',
       'point_purchase',
-      'announcement'
+      'announcement',
+      'athlete_application'
     )
   ),
   title text not null,

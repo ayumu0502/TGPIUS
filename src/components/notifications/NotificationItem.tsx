@@ -20,7 +20,7 @@ export default function NotificationItem({
     <form action={markRead}>
       <button
         type="submit"
-        className={`premium-card premium-card-hover flex w-full items-start gap-4 p-4 text-left transition-colors ${
+        className={`premium-card premium-card-hover flex w-full min-h-[72px] items-start gap-4 p-4 text-left transition-colors sm:min-h-0 ${
           notification.is_read
             ? "opacity-80"
             : "border-[var(--gold)]/30 bg-gradient-to-r from-[var(--gold)]/5 to-white"

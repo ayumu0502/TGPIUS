@@ -46,17 +46,20 @@ export default function PostCard({
     () => typeof window !== "undefined" && getSavedPostIds().includes(post.id)
   );
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [likeError, setLikeError] = useState<string | null>(null);
 
   const handleLike = () => {
     const nextLiked = !liked;
     setLiked(nextLiked);
     setLikeCount((count) => count + (nextLiked ? 1 : -1));
+    setLikeError(null);
 
     startTransition(async () => {
       const result = await toggleLike(post.id);
       if (result.error) {
         setLiked(!nextLiked);
         setLikeCount((count) => count + (nextLiked ? -1 : 1));
+        setLikeError(result.error);
       } else {
         router.refresh();
       }
@@ -256,6 +259,9 @@ export default function PostCard({
           >
             いいね {likeCount.toLocaleString()}件
           </p>
+        ) : null}
+        {likeError ? (
+          <p className="mt-1 text-xs text-red-500">{likeError}</p>
         ) : null}
 
         {post.caption ? (

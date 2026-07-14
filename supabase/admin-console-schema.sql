@@ -1,5 +1,14 @@
 -- Admin console extensions: audit log, content moderation, report management
--- Run in Supabase SQL Editor AFTER messages-hotfix.sql
+--
+-- PREREQUISITES (run these BEFORE this file if not already applied):
+--   - admin-schema.sql          (is_admin)
+--   - posts-schema.sql          (posts, comments)
+--   - events-schema.sql         (events) — optional for event moderation
+--   - fanclub-schema.sql        (fanclub_posts) — optional for exclusive content moderation
+--   - messages-hotfix.sql       (user_reports, user_blocks) — optional for report moderation
+--   - notifications-schema.sql  (create_notification) — required for announcements
+--
+-- If fanclub_posts does not exist yet, run fanclub-schema.sql first, then re-run this file.
 
 -- ---------------------------------------------------------------------------
 -- Global admin audit log
@@ -86,30 +95,52 @@ create policy "Admins can delete any comment"
   on public.comments for delete
   using (public.is_admin());
 
-drop policy if exists "Admins can view all events" on public.events;
-create policy "Admins can view all events"
-  on public.events for select
-  using (public.is_admin());
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'events'
+  ) then
+    execute 'drop policy if exists "Admins can view all events" on public.events';
+    execute 'create policy "Admins can view all events"
+      on public.events for select
+      using (public.is_admin())';
+    execute 'drop policy if exists "Admins can update all events" on public.events';
+    execute 'create policy "Admins can update all events"
+      on public.events for update
+      using (public.is_admin())';
+  end if;
+end $$;
 
-drop policy if exists "Admins can update all events" on public.events;
-create policy "Admins can update all events"
-  on public.events for update
-  using (public.is_admin());
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'fanclub_posts'
+  ) then
+    execute 'drop policy if exists "Admins can view all fanclub posts" on public.fanclub_posts';
+    execute 'create policy "Admins can view all fanclub posts"
+      on public.fanclub_posts for select
+      using (public.is_admin())';
+    execute 'drop policy if exists "Admins can delete fanclub posts" on public.fanclub_posts';
+    execute 'create policy "Admins can delete fanclub posts"
+      on public.fanclub_posts for delete
+      using (public.is_admin())';
+  end if;
+end $$;
 
-drop policy if exists "Admins can view all fanclub posts" on public.fanclub_posts;
-create policy "Admins can view all fanclub posts"
-  on public.fanclub_posts for select
-  using (public.is_admin());
-
-drop policy if exists "Admins can delete fanclub posts" on public.fanclub_posts;
-create policy "Admins can delete fanclub posts"
-  on public.fanclub_posts for delete
-  using (public.is_admin());
-
-drop policy if exists "Admins can update reports" on public.user_reports;
-create policy "Admins can update reports"
-  on public.user_reports for update
-  using (public.is_admin());
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'user_reports'
+  ) then
+    execute 'drop policy if exists "Admins can update reports" on public.user_reports';
+    execute 'create policy "Admins can update reports"
+      on public.user_reports for update
+      using (public.is_admin())';
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Admin moderation RPCs
@@ -151,45 +182,63 @@ $$;
 
 grant execute on function public.admin_delete_comment(uuid) to authenticated;
 
-create or replace function public.admin_cancel_event(p_event_id uuid, p_note text default '')
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
+do $$
 begin
-  if not public.is_admin() then raise exception 'NOT_ADMIN'; end if;
-  if not exists (select 1 from public.events where id = p_event_id) then
-    raise exception 'EVENT_NOT_FOUND';
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'events'
+  ) then
+    execute $fn$
+      create or replace function public.admin_cancel_event(p_event_id uuid, p_note text default '')
+      returns void
+      language plpgsql
+      security definer
+      set search_path = public
+      as $body$
+      begin
+        if not public.is_admin() then raise exception 'NOT_ADMIN'; end if;
+        if not exists (select 1 from public.events where id = p_event_id) then
+          raise exception 'EVENT_NOT_FOUND';
+        end if;
+        update public.events
+        set status = 'cancelled', updated_at = now()
+        where id = p_event_id;
+        perform public.admin_log_action(
+          'cancel_event', 'event', p_event_id, '{}'::jsonb, trim(coalesce(p_note, ''))
+        );
+      end;
+      $body$;
+    $fn$;
+    execute 'grant execute on function public.admin_cancel_event(uuid, text) to authenticated';
   end if;
-  update public.events
-  set status = 'cancelled', updated_at = now()
-  where id = p_event_id;
-  perform public.admin_log_action(
-    'cancel_event', 'event', p_event_id, '{}'::jsonb, trim(coalesce(p_note, ''))
-  );
-end;
-$$;
+end $$;
 
-grant execute on function public.admin_cancel_event(uuid, text) to authenticated;
-
-create or replace function public.admin_delete_fanclub_post(p_post_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
+do $$
 begin
-  if not public.is_admin() then raise exception 'NOT_ADMIN'; end if;
-  if not exists (select 1 from public.fanclub_posts where id = p_post_id) then
-    raise exception 'POST_NOT_FOUND';
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'fanclub_posts'
+  ) then
+    execute $fn$
+      create or replace function public.admin_delete_fanclub_post(p_post_id uuid)
+      returns void
+      language plpgsql
+      security definer
+      set search_path = public
+      as $body$
+      begin
+        if not public.is_admin() then raise exception 'NOT_ADMIN'; end if;
+        if not exists (select 1 from public.fanclub_posts where id = p_post_id) then
+          raise exception 'POST_NOT_FOUND';
+        end if;
+        delete from public.fanclub_posts where id = p_post_id;
+        perform public.admin_log_action('delete_fanclub_post', 'fanclub_post', p_post_id);
+      end;
+      $body$;
+    $fn$;
+    execute 'grant execute on function public.admin_delete_fanclub_post(uuid) to authenticated';
   end if;
-  delete from public.fanclub_posts where id = p_post_id;
-  perform public.admin_log_action('delete_fanclub_post', 'fanclub_post', p_post_id);
-end;
-$$;
-
-grant execute on function public.admin_delete_fanclub_post(uuid) to authenticated;
+end $$;
 
 create or replace function public.admin_update_report_status(
   p_report_id uuid,

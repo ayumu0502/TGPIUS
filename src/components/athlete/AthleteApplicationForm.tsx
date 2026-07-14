@@ -159,7 +159,15 @@ export default function AthleteApplicationForm({
             </p>
           ) : currentStatus === "suspended" ? (
             <p className="text-sm text-[var(--text-secondary)]">
-              アスリート機能は利用停止中です。運営にお問い合わせください。
+              アスリート機能は利用停止中です。復帰については運営の審査結果をお待ちください。
+            </p>
+          ) : currentStatus === "rejected" ? (
+            <p className="text-sm text-[var(--text-secondary)]">
+              申請は却下されました。審査メモを確認のうえ、内容を修正して再提出できます。
+            </p>
+          ) : currentStatus === "resubmit" ? (
+            <p className="text-sm text-[var(--text-secondary)]">
+              再提出が必要です。審査メモを確認し、フォームから再申請してください。
             </p>
           ) : (
             <p className="text-sm text-[var(--text-secondary)]">

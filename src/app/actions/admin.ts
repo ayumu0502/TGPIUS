@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 import type {
   AdminActionState,
   AdminAthleteEarning,
@@ -20,14 +21,24 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   NOT_ADMIN: "管理者権限がありません",
   CANNOT_SUSPEND_SELF: "自分自身のアカウントは停止できません",
   CANNOT_SUSPEND_ADMIN: "管理者アカウントは停止できません",
+  CANNOT_DELETE_SELF: "自分自身のアカウントは削除できません",
+  CANNOT_DELETE_ADMIN: "管理者アカウントは削除できません",
   USER_NOT_FOUND: "ユーザーが見つかりません",
+  EMAIL_MISMATCH: "確認用メールアドレスが一致しません",
 };
 
 function translateAdminError(message: string): string {
   for (const [code, text] of Object.entries(ADMIN_ERROR_MESSAGES)) {
     if (message.includes(code)) return text;
   }
-  return "操作に失敗しました";
+  if (
+    message.includes("admin_set_user_suspended") ||
+    message.includes("admin_log_action") ||
+    message.includes("could not find the function")
+  ) {
+    return "Supabase で admin-schema.sql / admin-console-schema.sql が未実行です。SQL Editor から実行してください";
+  }
+  return "操作に失敗しました。時間をおいて再度お試しください";
 }
 
 export async function requireAdmin() {
@@ -342,6 +353,72 @@ export async function setUserSuspended(
       ? "ユーザーを停止しました"
       : "ユーザーを再開しました",
   };
+}
+
+export async function deleteUserAccount(
+  _prevState: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const confirmEmail = String(formData.get("confirm_email") ?? "").trim().toLowerCase();
+
+  if (!userId) {
+    return { error: "ユーザーが指定されていません" };
+  }
+
+  if (userId === admin.id) {
+    return { error: ADMIN_ERROR_MESSAGES.CANNOT_DELETE_SELF };
+  }
+
+  const supabase = await createClient();
+  const { data: target, error: fetchError } = await supabase
+    .from("profiles")
+    .select("id, name, email, is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (fetchError || !target) {
+    return { error: ADMIN_ERROR_MESSAGES.USER_NOT_FOUND };
+  }
+
+  if (target.is_admin) {
+    return { error: ADMIN_ERROR_MESSAGES.CANNOT_DELETE_ADMIN };
+  }
+
+  if (confirmEmail !== String(target.email).trim().toLowerCase()) {
+    return { error: ADMIN_ERROR_MESSAGES.EMAIL_MISMATCH };
+  }
+
+  const { error: auditError } = await supabase.rpc("admin_log_action", {
+    p_action: "delete_user",
+    p_target_type: "user",
+    p_target_id: userId,
+    p_metadata: {
+      email: target.email,
+      name: target.name,
+    },
+    p_note: "管理者によるアカウント削除",
+  });
+
+  if (auditError && !auditError.message.includes("could not find the function")) {
+    console.error("deleteUserAccount audit:", auditError.message);
+  }
+
+  const service = createServiceClient();
+  const { error: deleteError } = await service.auth.admin.deleteUser(userId);
+
+  if (deleteError) {
+    return { error: `アカウントの削除に失敗しました: ${deleteError.message}` };
+  }
+
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/applications");
+  revalidatePath("/admin/audit");
+
+  return { success: `${target.name} のアカウントを削除しました` };
 }
 
 export async function getPendingPayouts() {

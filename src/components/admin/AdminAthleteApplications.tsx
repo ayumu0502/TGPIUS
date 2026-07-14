@@ -13,6 +13,7 @@ import {
   type AthleteApplicationAuditEntry,
   type AthleteReviewStatus,
 } from "@/types/athlete-application";
+import Link from "next/link";
 
 type AdminAthleteApplicationsProps = {
   applications: AdminAthleteApplicationRow[];
@@ -30,6 +31,8 @@ const STATUS_OPTIONS: { value: AthleteReviewStatus | "all"; label: string }[] = 
   { value: "not_applied", label: "未申請" },
 ];
 
+type ReviewAction = "approve" | "reject" | "resubmit_request" | "suspend" | "reinstate";
+
 function ReviewForm({
   applicationId,
   action,
@@ -38,7 +41,7 @@ function ReviewForm({
   tone = "default",
 }: {
   applicationId: string;
-  action: "approve" | "reject" | "resubmit_request" | "suspend";
+  action: ReviewAction;
   label: string;
   confirmMessage: string;
   tone?: "default" | "danger" | "gold";
@@ -77,13 +80,91 @@ function ReviewForm({
       <button
         type="submit"
         disabled={isPending}
-        className={`w-full rounded-full px-3 py-2 text-xs font-medium transition disabled:opacity-50 ${buttonClass}`}
+        className={`w-full rounded-full px-3 py-2.5 text-xs font-medium transition disabled:opacity-50 ${buttonClass}`}
       >
         {isPending ? "処理中..." : label}
       </button>
       {state?.error ? <p className="text-xs text-red-500">{state.error}</p> : null}
       {state?.success ? <p className="text-xs text-emerald-600">{state.success}</p> : null}
     </form>
+  );
+}
+
+function ReviewActions({ application }: { application: AdminAthleteApplicationRow }) {
+  const status = application.status;
+
+  if (status === "suspended") {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ReviewForm
+          applicationId={application.id}
+          action="reinstate"
+          label="復帰（承認）"
+          confirmMessage={`${application.full_name} のアスリート機能を復帰させますか？`}
+          tone="gold"
+        />
+        <ReviewForm
+          applicationId={application.id}
+          action="reject"
+          label="却下のまま維持"
+          confirmMessage="却下ステータスに変更しますか？"
+          tone="danger"
+        />
+      </div>
+    );
+  }
+
+  if (status === "approved") {
+    return (
+      <div className="max-w-sm">
+        <ReviewForm
+          applicationId={application.id}
+          action="suspend"
+          label="アスリート機能を停止"
+          confirmMessage={`${application.full_name} のアスリート機能を利用停止にしますか？`}
+          tone="danger"
+        />
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          アカウント全体の停止は
+          <Link href="/admin/users" className="text-[var(--gold-dark)] underline">
+            ユーザー管理
+          </Link>
+          から行えます
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ReviewForm
+        applicationId={application.id}
+        action="approve"
+        label="承認"
+        confirmMessage={`${application.full_name} の申請を承認しますか？`}
+        tone="gold"
+      />
+      <ReviewForm
+        applicationId={application.id}
+        action="resubmit_request"
+        label="再提出依頼"
+        confirmMessage="再提出を依頼しますか？"
+      />
+      <ReviewForm
+        applicationId={application.id}
+        action="reject"
+        label="却下"
+        confirmMessage="申請を却下しますか？"
+        tone="danger"
+      />
+      <ReviewForm
+        applicationId={application.id}
+        action="suspend"
+        label="利用停止"
+        confirmMessage="アスリート機能を利用停止にしますか？"
+        tone="danger"
+      />
+    </div>
   );
 }
 
@@ -125,7 +206,7 @@ function ApplicationDetail({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-[var(--card-border)] px-3 py-1 text-xs text-[var(--text-muted)]"
+          className="rounded-full border border-[var(--card-border)] px-3 py-1.5 text-xs text-[var(--text-muted)]"
         >
           閉じる
         </button>
@@ -195,6 +276,12 @@ function ApplicationDetail({
             本人確認書類を開く
           </a>
         ) : null}
+        <Link
+          href={`/admin/users?q=${encodeURIComponent(application.user_email)}`}
+          className="rounded-full border border-[var(--card-border)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--gold)]"
+        >
+          ユーザー管理で開く
+        </Link>
       </div>
 
       {auditLog.length > 0 ? (
@@ -221,36 +308,41 @@ function ApplicationDetail({
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ReviewForm
-          applicationId={application.id}
-          action="approve"
-          label="承認"
-          confirmMessage={`${application.full_name} の申請を承認しますか？`}
-          tone="gold"
-        />
-        <ReviewForm
-          applicationId={application.id}
-          action="resubmit_request"
-          label="再提出依頼"
-          confirmMessage="再提出を依頼しますか？"
-        />
-        <ReviewForm
-          applicationId={application.id}
-          action="reject"
-          label="却下"
-          confirmMessage="申請を却下しますか？"
-          tone="danger"
-        />
-        <ReviewForm
-          applicationId={application.id}
-          action="suspend"
-          label="利用停止"
-          confirmMessage="アスリート機能を利用停止にしますか？"
-          tone="danger"
-        />
+      <div className="mt-6">
+        <p className="mb-3 text-xs font-medium text-[var(--text-muted)]">審査操作</p>
+        <ReviewActions application={application} />
       </div>
     </div>
+  );
+}
+
+function ApplicationCard({
+  application,
+  onSelect,
+}: {
+  application: AdminAthleteApplicationRow;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="premium-card w-full p-4 text-left transition hover:border-[var(--gold)]/40"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-[var(--text-primary)]">{application.full_name}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{application.user_email}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+          {ATHLETE_REVIEW_STATUS_LABELS[application.status]}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-[var(--text-secondary)]">{application.sport}</p>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">
+        {formatAdminDate(application.submitted_at)}
+      </p>
+    </button>
   );
 }
 
@@ -292,7 +384,23 @@ export default function AdminAthleteApplications({
         <ApplicationDetail application={selected} onClose={() => setSelectedId(null)} />
       ) : null}
 
-      <div className="premium-card overflow-x-auto">
+      <div className="space-y-3 md:hidden">
+        {applications.length === 0 ? (
+          <div className="premium-card px-4 py-10 text-center text-sm text-[var(--text-muted)]">
+            該当する申請がありません
+          </div>
+        ) : (
+          applications.map((app) => (
+            <ApplicationCard
+              key={app.id}
+              application={app}
+              onSelect={() => setSelectedId(app.id)}
+            />
+          ))
+        )}
+      </div>
+
+      <div className="premium-card hidden overflow-x-auto md:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--card-border)] bg-[var(--surface)] text-xs text-[var(--text-muted)]">

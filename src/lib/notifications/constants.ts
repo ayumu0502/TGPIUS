@@ -8,6 +8,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   follow: "フォロー",
   point_purchase: "ポイント購入",
   announcement: "お知らせ",
+  athlete_application: "選手申請",
 };
 
 export function formatNotificationDate(iso: string): string {
@@ -41,6 +42,7 @@ export function getNotificationIcon(type: NotificationType): string {
     follow: "＋",
     point_purchase: "◎",
     announcement: "📢",
+    athlete_application: "✓",
   };
   return icons[type];
 }

@@ -135,7 +135,7 @@ create table if not exists public.athlete_application_audit_log (
   user_id uuid not null references public.profiles(id) on delete cascade,
   admin_id uuid not null references public.profiles(id) on delete cascade,
   action text not null
-    check (action in ('submitted', 'approved', 'rejected', 'resubmit_requested', 'suspended', 'note')),
+    check (action in ('submitted', 'approved', 'rejected', 'resubmit_requested', 'suspended', 'reinstated', 'note')),
   previous_status public.athlete_review_status,
   new_status public.athlete_review_status,
   note text not null default '',
@@ -389,6 +389,7 @@ begin
       '選手申請が承認されました',
       'アスリートとしての活動を開始できます。',
       '/athlete/dashboard',
+      'athlete_application',
       p_application_id
     );
 
@@ -415,6 +416,7 @@ begin
       '選手申請が却下されました',
       case when v_note <> '' then v_note else '詳細は申請ページをご確認ください。' end,
       '/athlete/apply',
+      'athlete_application',
       p_application_id
     );
 
@@ -441,6 +443,7 @@ begin
       '選手申請の再提出をお願いします',
       case when v_note <> '' then v_note else '申請内容を修正のうえ、再提出してください。' end,
       '/athlete/apply',
+      'athlete_application',
       p_application_id
     );
 
@@ -467,6 +470,41 @@ begin
       'アスリート機能が利用停止されました',
       case when v_note <> '' then v_note else '運営にお問い合わせください。' end,
       '/athlete/apply',
+      'athlete_application',
+      p_application_id
+    );
+
+  elsif v_action = 'reinstate' then
+    if v_prev_status is distinct from 'suspended' then
+      raise exception 'REINSTATE_NOT_ALLOWED';
+    end if;
+
+    v_new_status := 'approved';
+
+    update public.profiles
+    set
+      athlete_review_status = v_new_status,
+      is_verified = true,
+      updated_at = now()
+    where id = v_app.user_id;
+
+    update public.athlete_applications
+    set
+      status = v_new_status,
+      review_note = v_note,
+      reviewed_by = v_admin_id,
+      reviewed_at = now(),
+      updated_at = now()
+    where id = p_application_id;
+
+    perform public.create_notification(
+      v_app.user_id,
+      v_admin_id,
+      'athlete_application',
+      'アスリート機能が復帰しました',
+      case when v_note <> '' then v_note else '引き続き活動をお楽しみください。' end,
+      '/athlete/dashboard',
+      'athlete_application',
       p_application_id
     );
 
@@ -486,6 +524,7 @@ begin
       when 'reject' then 'rejected'
       when 'resubmit_request' then 'resubmit_requested'
       when 'suspend' then 'suspended'
+      when 'reinstate' then 'reinstated'
       else v_action
     end,
     v_prev_status,

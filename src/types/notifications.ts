@@ -5,7 +5,8 @@ export type NotificationType =
   | "dm"
   | "follow"
   | "point_purchase"
-  | "announcement";
+  | "announcement"
+  | "athlete_application";
 
 export type NotificationRecord = {
   id: string;

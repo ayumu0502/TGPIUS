@@ -15,6 +15,7 @@ const REVIEW_ERROR_MESSAGES: Record<string, string> = {
   NOT_ADMIN: "管理者権限がありません",
   APPLICATION_NOT_FOUND: "申請が見つかりません",
   INVALID_ACTION: "操作が正しくありません",
+  REINSTATE_NOT_ALLOWED: "利用停止中のアスリートのみ復帰できます",
 };
 
 function translateReviewError(message: string): string {
@@ -145,7 +146,7 @@ export async function reviewAthleteApplication(
   const note = String(formData.get("note") ?? "").trim();
 
   if (!applicationId) return { error: "申請IDが不正です" };
-  if (!["approve", "reject", "resubmit_request", "suspend"].includes(action)) {
+  if (!["approve", "reject", "resubmit_request", "suspend", "reinstate"].includes(action)) {
     return { error: "操作が正しくありません" };
   }
 
@@ -169,6 +170,7 @@ export async function reviewAthleteApplication(
     reject: "申請を却下しました",
     resubmit_request: "再提出を依頼しました",
     suspend: "アスリート機能を利用停止にしました",
+    reinstate: "アスリート機能を復帰させました",
   };
 
   return { success: successMessages[action] ?? "操作を完了しました" };

@@ -52,7 +52,7 @@ export default async function AdminApplicationsPage({
             選手申請・審査
           </h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            申請内容の確認、本人確認書類の閲覧、承認・却下
+            承認・却下・再提出依頼・利用停止・復帰
           </p>
         </div>
         <Link

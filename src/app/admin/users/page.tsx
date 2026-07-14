@@ -47,7 +47,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           ユーザー管理
         </h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          検索・種別フィルタ・アカウント停止・再開
+          検索・種別フィルタ・アカウント停止・削除
         </p>
       </div>
       <AdminUsersPanel
