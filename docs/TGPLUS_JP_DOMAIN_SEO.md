@@ -4,7 +4,8 @@
 
 ## コードで実装済み
 
-- `vercel.json`: `www.tgplus.jp` → `tgplus.jp`、`tgpius.vercel.app` → `tgplus.jp` へ 301 リダイレクト
+- `vercel.json`: `www.tgplus.jp` → `tgplus.jp` へ 301 リダイレクト
+- `tgpius.vercel.app` → `tgplus.jp` のリダイレクトは **tgplus.jp の DNS 設定完了後** に Vercel ダッシュボードで有効化してください（`/_next/static` など静的アセットまでリダイレクトすると CSS/JS が読み込めず表示が崩れます）
 - `NEXT_PUBLIC_APP_URL` を `https://tgplus.jp` に向けるデプロイスクリプト
 - `sitemap.xml` / `robots.txt`（Next.js 動的生成）
 - 全ページ SEO（title / description / canonical / OGP / Xカード）
