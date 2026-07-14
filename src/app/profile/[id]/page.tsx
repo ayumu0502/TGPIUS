@@ -58,6 +58,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const isOwnProfile = currentUser.id === id;
   const isAthlete = profile.account_type === "athlete";
+  const athleteIsPublic =
+    !isAthlete ||
+    !isOwnProfile ||
+    currentUser.athlete_review_status === "approved";
 
   const [posts, layoutCounts, pageData, rankingAthletes] = await Promise.all([
     getUserPosts(id),
@@ -66,22 +70,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     isAthlete ? Promise.resolve([]) : getRankingPreview("gifts_month", 5),
   ]);
 
-  const showGiftButton = canSendGift(
-    currentUser.account_type,
-    isOwnProfile,
-    profile.account_type
-  );
-  const showMessageButton = canSendMessage(
-    currentUser.account_type,
-    isOwnProfile,
-    profile.account_type
-  );
+  const showGiftButton =
+    athleteIsPublic &&
+    canSendGift(currentUser.account_type, isOwnProfile, profile.account_type);
+  const showMessageButton =
+    athleteIsPublic &&
+    canSendMessage(currentUser.account_type, isOwnProfile, profile.account_type);
   const showFollowButton =
+    athleteIsPublic &&
     !isOwnProfile &&
     isAthlete &&
     (currentUser.account_type === "fan" || currentUser.account_type === "sponsor");
   const showPurchaseButton =
-    currentUser.account_type === "fan" && !isOwnProfile && isAthlete;
+    athleteIsPublic &&
+    currentUser.account_type === "fan" &&
+    !isOwnProfile &&
+    isAthlete;
 
   return (
     <PremiumLayout

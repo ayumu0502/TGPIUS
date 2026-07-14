@@ -1,9 +1,9 @@
 import type { PurchaseAmount } from "@/types/points";
 import { getSupporterPriceId as getSupporterPriceIdFromEnv } from "@/lib/stripe/env";
+import { PROVISIONAL_STRIPE_PLATFORM_FEE_RATE } from "@/lib/config/revenue-sharing";
 
-export const PLATFORM_FEE_RATE = Number(
-  process.env.STRIPE_PLATFORM_FEE_RATE ?? "0.1"
-);
+/** TODO: provisional — not final revenue-sharing spec */
+export const PLATFORM_FEE_RATE = PROVISIONAL_STRIPE_PLATFORM_FEE_RATE;
 
 export type PointPlan = {
   points: PurchaseAmount;

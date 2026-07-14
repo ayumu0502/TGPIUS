@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { deleteMessage, updatePresence } from "@/app/actions/messages";
 import MessageBubble from "@/components/messages/MessageBubble";
 import MessageInput from "@/components/messages/MessageInput";
+import ChatRoomActions from "@/components/messages/ChatRoomActions";
 import { ProfileAvatar } from "@/components/social/SocialLayout";
 import {
   formatMessageDateDivider,
@@ -125,6 +126,23 @@ export default function ChatRoom({
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "message_reads",
+        },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>;
+          const messageId = String(row.message_id);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.is_own && m.id === messageId ? { ...m, is_read: true } : m
+            )
+          );
+        }
+      )
       .subscribe();
 
     const profileChannel = supabase
@@ -205,6 +223,12 @@ export default function ChatRoom({
                 : "オフライン"}
           </p>
         </div>
+        <ChatRoomActions
+          otherUserId={otherUser.user_id}
+          otherUserName={otherUser.name}
+          conversationId={conversationId}
+          variant={variant}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">

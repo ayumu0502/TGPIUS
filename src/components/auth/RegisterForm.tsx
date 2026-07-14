@@ -88,6 +88,11 @@ export default function RegisterForm() {
                   );
                 })}
               </div>
+              {accountType === "athlete" ? (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                  アスリート登録後は選手申請・審査が必要です。承認後に活動を開始できます。
+                </p>
+              ) : null}
             </fieldset>
 
             <AuthInput

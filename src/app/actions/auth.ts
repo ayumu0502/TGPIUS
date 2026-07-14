@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { translateAuthError } from "@/lib/auth/errors";
 import {
   getAccountTypeFromMetadata,
+  getAthleteEntryPath,
   getDashboardPath,
 } from "@/lib/auth/routes";
 import {
@@ -28,6 +29,8 @@ async function saveProfile(
       name,
       email,
       account_type: accountType,
+      athlete_review_status:
+        accountType === "athlete" ? ("not_applied" as const) : null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }
@@ -97,12 +100,18 @@ export async function register(
       return { error: translateAuthError(profileError.message) };
     }
 
+    if (accountType === "athlete") {
+      redirect("/athlete/apply");
+    }
+
     redirect(getDashboardPath(accountType));
   }
 
   return {
     success:
-      "確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。",
+      accountType === "athlete"
+        ? "確認メールを送信しました。メール内のリンクをクリックして登録を完了し、選手申請を行ってください。"
+        : "確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。",
   };
 }
 
@@ -149,12 +158,16 @@ export async function login(
 
   const { data: profileRow } = await supabase
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, athlete_review_status")
     .eq("id", data.user.id)
     .single();
 
   if (profileRow?.is_admin) {
     redirect("/admin/dashboard");
+  }
+
+  if (accountType === "athlete") {
+    redirect(getAthleteEntryPath(profileRow?.athlete_review_status));
   }
 
   redirect(getDashboardPath(accountType));
@@ -180,7 +193,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, name, email, account_type, created_at, updated_at, is_admin, is_suspended"
+      "id, name, email, account_type, created_at, updated_at, is_admin, is_suspended, athlete_review_status"
     )
     .eq("id", user.id)
     .single();

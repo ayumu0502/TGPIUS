@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   getAthleteGiftStats,
   getReceivedGifts,
 } from "@/app/actions/gifts";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import GiftHistoryList from "@/components/gifts/GiftHistoryList";
 import { DashboardSection, SecondaryButton, StatCard } from "@/components/dashboard/DashboardUI";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -18,11 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AthleteGiftsPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "athlete") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = await requireApprovedAthlete();
 
   const [stats, receivedGifts, layoutCounts] = await Promise.all([
     getAthleteGiftStats(),

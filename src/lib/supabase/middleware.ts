@@ -2,9 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   getAccountTypeFromMetadata,
+  getAthleteEntryPath,
   getDashboardPath,
   getDashboardPrefix,
 } from "@/lib/auth/routes";
+import { isAthleteGatedPath } from "@/lib/athlete/status";
+import type { AthleteReviewStatus } from "@/types/athlete-application";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -82,7 +85,7 @@ export async function updateSession(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin, is_suspended, account_type")
+      .select("is_admin, is_suspended, account_type, athlete_review_status")
       .eq("id", user.id)
       .single();
 
@@ -105,7 +108,12 @@ export async function updateSession(request: NextRequest) {
       if (isAdmin) {
         redirectUrl.pathname = "/admin/dashboard";
       } else if (resolvedAccountType) {
-        redirectUrl.pathname = getDashboardPath(resolvedAccountType);
+        redirectUrl.pathname =
+          resolvedAccountType === "athlete"
+            ? getAthleteEntryPath(
+                profile?.athlete_review_status as AthleteReviewStatus | null | undefined
+              )
+            : getDashboardPath(resolvedAccountType);
       } else {
         redirectUrl.pathname = "/register";
       }
@@ -126,7 +134,22 @@ export async function updateSession(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = isAdmin
         ? "/admin/dashboard"
-        : getDashboardPath(resolvedAccountType);
+        : resolvedAccountType === "athlete"
+          ? getAthleteEntryPath(
+              profile?.athlete_review_status as AthleteReviewStatus | null | undefined
+            )
+          : getDashboardPath(resolvedAccountType);
+      redirectUrl.search = "";
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (
+      resolvedAccountType === "athlete" &&
+      isAthleteGatedPath(pathname) &&
+      profile?.athlete_review_status !== "approved"
+    ) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/athlete/apply";
       redirectUrl.search = "";
       return NextResponse.redirect(redirectUrl);
     }

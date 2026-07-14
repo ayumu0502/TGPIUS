@@ -22,6 +22,7 @@ type ConversationListProps = {
   activeConversationId?: string;
   accountType: string;
   variant?: "dark" | "light";
+  initialError?: string;
 };
 
 export default function ConversationList({
@@ -29,6 +30,7 @@ export default function ConversationList({
   activeConversationId,
   accountType,
   variant = "light",
+  initialError,
 }: ConversationListProps) {
   const isLight = variant === "light";
   const router = useRouter();
@@ -38,6 +40,7 @@ export default function ConversationList({
   const [athletes, setAthletes] = useState<
     { id: string; name: string; sport: string; avatar_url: string | null }[]
   >([]);
+  const [startError, setStartError] = useState<string | null>(initialError ?? null);
   const [isPending, startTransition] = useTransition();
 
   const handleSearch = (value: string) => {
@@ -61,11 +64,14 @@ export default function ConversationList({
   };
 
   const handleStartChat = async (userId: string) => {
+    setStartError(null);
     const result = await startConversation(userId);
     if (result.conversationId) {
       setShowNewChat(false);
       router.push(`/messages/${result.conversationId}`);
+      return;
     }
+    setStartError(result.error ?? "会話を開始できませんでした");
   };
 
   const isTyping = (conv: ConversationSummary) => {
@@ -147,6 +153,12 @@ export default function ConversationList({
           </button>
         )}
       </div>
+
+      {startError ? (
+        <p className="mx-4 mb-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {startError}
+        </p>
+      ) : null}
 
       {showNewChat ? (
         <div className="flex-1 overflow-y-auto p-4">

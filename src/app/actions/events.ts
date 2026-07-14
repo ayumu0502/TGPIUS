@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { isApprovedAthlete } from "@/lib/athlete/status";
 import { createClient } from "@/lib/supabase/server";
 import { mapEventParticipant, mapEventSummary } from "@/lib/events/helpers";
 import type {
@@ -132,6 +133,9 @@ export async function createEvent(
 
   if (profile.account_type !== "athlete") {
     return { ok: false, message: "アスリートのみイベントを作成できます" };
+  }
+  if (!isApprovedAthlete(profile)) {
+    return { ok: false, message: "選手申請の承認後にイベントを作成できます" };
   }
 
   const supabase = await createClient();

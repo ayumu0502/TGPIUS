@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import {
   getAthleteGiftStats,
   getReceivedGifts,
@@ -18,15 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AthleteDashboardPage() {
-  const profile = await getCurrentProfile();
-
-  if (!profile) {
-    redirect("/login");
-  }
-
-  if (profile.account_type !== "athlete") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = await requireApprovedAthlete();
 
   const [stats, receivedGifts, createdEvents, layoutCounts, earningsRow] =
     await Promise.all([

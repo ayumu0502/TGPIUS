@@ -1,3 +1,5 @@
+import type { AthleteReviewStatus } from "@/types/athlete-application";
+
 export type AccountType = "fan" | "athlete" | "sponsor";
 
 export interface Profile {
@@ -9,6 +11,7 @@ export interface Profile {
   updated_at: string;
   is_admin?: boolean;
   is_suspended?: boolean;
+  athlete_review_status?: AthleteReviewStatus | null;
 }
 
 export interface AuthFormState {

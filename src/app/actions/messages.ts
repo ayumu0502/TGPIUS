@@ -16,6 +16,10 @@ const MESSAGE_ERRORS: Record<string, string> = {
   INVALID_MESSAGE_PAIR: "このユーザーとはメッセージを送れません",
   NOT_MEMBER: "会話に参加していません",
   NOT_AUTHENTICATED: "ログインが必要です",
+  INVALID_BLOCK_TARGET: "ブロックできないユーザーです",
+  INVALID_REPORT_TARGET: "通報できないユーザーです",
+  USER_NOT_FOUND: "ユーザーが見つかりません",
+  REASON_REQUIRED: "通報理由を5文字以上入力してください",
 };
 
 function translateMessageError(message: string): string {
@@ -509,6 +513,7 @@ export async function getMessageableAthletes(): Promise<
     .from("profiles")
     .select("id, name, sport, avatar_url")
     .eq("account_type", "athlete")
+    .eq("athlete_review_status", "approved")
     .order("name");
 
   return (data ?? []).map((row) => ({
@@ -517,4 +522,43 @@ export async function getMessageableAthletes(): Promise<
     sport: String(row.sport ?? ""),
     avatar_url: row.avatar_url ? String(row.avatar_url) : null,
   }));
+}
+
+export async function blockUser(
+  blockedUserId: string
+): Promise<{ error?: string; success?: string }> {
+  const current = await getCurrentProfile();
+  if (!current) return { error: "ログインが必要です" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("block_user", {
+    p_blocked_id: blockedUserId,
+  });
+
+  if (error) return { error: translateMessageError(error.message) };
+
+  revalidatePath("/messages");
+  return { success: "ブロックしました" };
+}
+
+export async function reportUser(
+  reportedUserId: string,
+  reason: string,
+  contextType = "dm",
+  contextId?: string
+): Promise<{ error?: string; success?: string }> {
+  const current = await getCurrentProfile();
+  if (!current) return { error: "ログインが必要です" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("report_user", {
+    p_reported_id: reportedUserId,
+    p_reason: reason.trim(),
+    p_context_type: contextType,
+    p_context_id: contextId ?? null,
+  });
+
+  if (error) return { error: translateMessageError(error.message) };
+
+  return { success: "通報を受け付けました" };
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import EventCreateForm from "@/components/events/EventCreateForm";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
@@ -12,12 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EventCreatePage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-
-  if (profile.account_type !== "athlete") {
-    redirect("/events");
-  }
+  const profile = await requireApprovedAthlete();
 
   const layoutCounts = await getPremiumLayoutCounts(profile.account_type);
 

@@ -172,11 +172,21 @@ begin
   end if;
 
   if v_other_type = 'athlete' and v_my_type in ('fan', 'sponsor') then
-    return true;
+    return exists (
+      select 1 from public.profiles
+      where id = p_other_user_id
+        and athlete_review_status = 'approved'
+        and coalesce(is_suspended, false) = false
+    );
   end if;
 
   if v_my_type = 'athlete' and v_other_type in ('fan', 'sponsor') then
-    return true;
+    return exists (
+      select 1 from public.profiles
+      where id = auth.uid()
+        and athlete_review_status = 'approved'
+        and coalesce(is_suspended, false) = false
+    );
   end if;
 
   return false;
@@ -337,7 +347,7 @@ create policy "Members can upload message attachments"
   to authenticated
   with check (
     bucket_id = 'message-attachments'
-    and auth.uid()::text = (storage.foldername(name))[2]
+    and auth.uid()::text = (storage.foldername(name))[1]
   );
 
 drop policy if exists "Anyone can view message attachments" on storage.objects;
@@ -351,7 +361,7 @@ create policy "Users can delete own message attachments"
   to authenticated
   using (
     bucket_id = 'message-attachments'
-    and auth.uid()::text = (storage.foldername(name))[2]
+    and auth.uid()::text = (storage.foldername(name))[1]
   );
 
 alter table public.messages replica identity full;

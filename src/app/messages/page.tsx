@@ -13,9 +13,15 @@ export const metadata: Metadata = {
   description: "DM · ダイレクトメッセージ",
 };
 
-export default async function MessagesPage() {
+type MessagesPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function MessagesPage({ searchParams }: MessagesPageProps) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+
+  const { error } = await searchParams;
 
   const [conversations, layoutCounts] = await Promise.all([
     getConversations(),
@@ -40,6 +46,7 @@ export default async function MessagesPage() {
             conversations={conversations}
             accountType={profile.account_type}
             variant="light"
+            initialError={error}
           />
         }
       >

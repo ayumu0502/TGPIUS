@@ -20,6 +20,7 @@ const GIFT_ERROR_MESSAGES: Record<string, string> = {
   SELF_GIFT: "自分自身にギフトは送れません",
   SENDER_NOT_FAN: "ファンアカウントのみギフトを送れます",
   RECEIVER_NOT_ATHLETE: "アスリートにのみギフトを送れます",
+  RECEIVER_NOT_APPROVED: "審査承認済みのアスリートにのみギフトを送れます",
   INSUFFICIENT_BALANCE: "ポイント残高が不足しています",
 };
 
@@ -54,6 +55,7 @@ export async function listAthletes(): Promise<GiftAthleteSummary[]> {
     .from("profiles")
     .select("id, name, sport, avatar_url")
     .eq("account_type", "athlete")
+    .eq("athlete_review_status", "approved")
     .order("name");
 
   if (error || !data) return [];

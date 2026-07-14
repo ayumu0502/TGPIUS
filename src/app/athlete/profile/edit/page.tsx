@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import { getPublicProfile } from "@/app/actions/profile";
 import AthleteProfileEditForm from "@/components/profile/AthleteProfileEditForm";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -12,11 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AthleteProfileEditPage() {
-  const current = await getCurrentProfile();
-  if (!current) redirect("/login");
-  if (current.account_type !== "athlete") {
-    redirect(`/${current.account_type}/dashboard`);
-  }
+  const current = await requireApprovedAthlete();
 
   const [profile, layoutCounts] = await Promise.all([
     getPublicProfile(current.id),

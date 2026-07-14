@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   DashboardSection,
   StatCard,
@@ -117,6 +118,23 @@ export default function AdminDashboardContent({
           sub="累計"
         />
       </div>
+
+      <DashboardSection
+        title="選手申請・審査"
+        description="アスリート登録申請の確認と承認"
+        action={
+          <Link
+            href="/admin/applications"
+            className="btn-gold rounded-full px-5 py-2.5 text-sm"
+          >
+            申請一覧を開く
+          </Link>
+        }
+      >
+        <p className="text-sm text-[var(--text-muted)]">
+          本人確認書類の確認、承認・却下・再提出依頼は申請管理画面で行えます。
+        </p>
+      </DashboardSection>
 
       <DashboardSection
         title={searchQuery ? "検索結果" : "ユーザー一覧"}

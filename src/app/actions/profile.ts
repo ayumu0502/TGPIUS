@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { isApprovedAthlete } from "@/lib/athlete/status";
 import { createClient } from "@/lib/supabase/server";
 import {
   mapProfileRow,
@@ -30,11 +31,21 @@ export async function getPublicProfile(
   const supabase = await createClient();
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select(PROFILE_SELECT)
+    .select(`${PROFILE_SELECT}, athlete_review_status`)
     .eq("id", userId)
     .single();
 
   if (error || !profile) return null;
+
+  if (
+    profile.account_type === "athlete" &&
+    profile.athlete_review_status !== "approved"
+  ) {
+    const current = await getCurrentProfile();
+    if (!current || current.id !== userId) {
+      return null;
+    }
+  }
 
   const { count } = await supabase
     .from("posts")
@@ -61,6 +72,9 @@ export async function updateAthleteProfile(
   if (!current) return { error: "ログインが必要です" };
   if (current.account_type !== "athlete") {
     return { error: "アスリートアカウントのみ編集できます" };
+  }
+  if (!isApprovedAthlete(current)) {
+    return { error: "選手申請の承認後にプロフィールを編集できます" };
   }
 
   const name = String(formData.get("name") ?? "").trim();

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import { getCurrentAthleteEarnings } from "@/app/actions/earnings";
 import AthleteEarningsDashboard from "@/components/connect/AthleteEarningsDashboard";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -15,11 +15,7 @@ export const metadata = createPageMetadata({
 });
 
 export default async function AthleteEarningsPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "athlete") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = await requireApprovedAthlete();
 
   const [earnings, layoutCounts] = await Promise.all([
     getCurrentAthleteEarnings(),

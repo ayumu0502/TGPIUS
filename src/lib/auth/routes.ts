@@ -1,4 +1,5 @@
 import type { AccountType } from "@/types/auth";
+import type { AthleteReviewStatus } from "@/types/athlete-application";
 
 export const DASHBOARD_PATHS: Record<AccountType, string> = {
   fan: "/fan/dashboard",
@@ -31,4 +32,13 @@ export function getDashboardPrefix(pathname: string): AccountType | null {
   if (pathname.startsWith("/athlete/")) return "athlete";
   if (pathname.startsWith("/sponsor/")) return "sponsor";
   return null;
+}
+
+export function getAthleteEntryPath(
+  status: AthleteReviewStatus | null | undefined
+): string {
+  if (status === "approved") {
+    return DASHBOARD_PATHS.athlete;
+  }
+  return "/athlete/apply";
 }

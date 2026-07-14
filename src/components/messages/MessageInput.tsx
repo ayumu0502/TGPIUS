@@ -57,7 +57,11 @@ export default function MessageInput({
             name="file"
             accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
             className="hidden"
-            onChange={() => formRef.current?.requestSubmit()}
+            disabled={isPending}
+            onChange={(event) => {
+              if (isPending || !event.target.files?.length) return;
+              formRef.current?.requestSubmit();
+            }}
           />
         </label>
         <textarea

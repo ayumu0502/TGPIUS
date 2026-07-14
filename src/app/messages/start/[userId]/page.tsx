@@ -15,5 +15,9 @@ export default async function StartMessagePage({
     redirect(`/messages/${result.conversationId}`);
   }
 
-  redirect("/messages");
+  redirect(
+    result.error
+      ? `/messages?error=${encodeURIComponent(result.error)}`
+      : "/messages"
+  );
 }

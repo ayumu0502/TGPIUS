@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { isApprovedAthlete } from "@/lib/athlete/status";
 import { requireAdmin } from "@/app/actions/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -122,6 +123,9 @@ export async function saveFanclubPlan(
   if (!profile || profile.account_type !== "athlete") {
     return { ok: false, message: "アスリートのみプランを作成できます" };
   }
+  if (!isApprovedAthlete(profile)) {
+    return { ok: false, message: "選手申請の承認後にプランを作成できます" };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_fanclub_plan", {
@@ -169,6 +173,9 @@ export async function createFanclubPost(
   const profile = await getCurrentProfile();
   if (!profile || profile.account_type !== "athlete") {
     return { ok: false, message: "アスリートのみ投稿できます" };
+  }
+  if (!isApprovedAthlete(profile)) {
+    return { ok: false, message: "選手申請の承認後に限定コンテンツを作成できます" };
   }
 
   const supabase = await createClient();

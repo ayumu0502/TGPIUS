@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { isApprovedAthlete } from "@/lib/athlete/status";
 import { getPublicProfile } from "@/app/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -150,6 +151,10 @@ export async function createPost(
   const profile = await getCurrentProfile();
   if (!profile) {
     return { error: "ログインが必要です" };
+  }
+
+  if (profile.account_type === "athlete" && !isApprovedAthlete(profile)) {
+    return { error: "選手申請の承認後に投稿できます" };
   }
 
   const caption = String(formData.get("caption") ?? "").trim();

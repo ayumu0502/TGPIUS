@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/app/actions/auth";
+import { requireApprovedAthlete } from "@/app/actions/athlete-access";
 import { getAthleteFanclubManage } from "@/app/actions/fanclub";
 import AthleteFanclubManagePanel from "@/components/fanclub/AthleteFanclubManagePanel";
 import AthleteFanclubPostForm from "@/components/fanclub/AthleteFanclubPostForm";
@@ -19,11 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AthleteFanclubPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "athlete") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = await requireApprovedAthlete();
 
   const [manageData, layoutCounts] = await Promise.all([
     getAthleteFanclubManage(),
