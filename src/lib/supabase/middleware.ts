@@ -46,6 +46,9 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isPasswordRecoveryPage =
+    pathname === "/forgot-password" || pathname === "/reset-password";
+  const isAuthCallback = pathname.startsWith("/auth/");
   const requiredRole = getDashboardPrefix(pathname);
   const isDashboardRoute = requiredRole !== null;
   const isAdminRoute = pathname.startsWith("/admin/");
@@ -104,7 +107,7 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    if (isAuthPage) {
+    if (isAuthPage && !isPasswordRecoveryPage && !isAuthCallback) {
       const redirectUrl = request.nextUrl.clone();
       if (resolvedAccountType) {
         redirectUrl.pathname =

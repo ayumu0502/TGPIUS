@@ -11,6 +11,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "";
   const isSuspended = searchParams.get("suspended") === "1";
+  const resetSuccess = searchParams.get("reset") === "success";
   const [state, formAction, isPending] = useActionState(login, null);
 
   return (
@@ -33,6 +34,15 @@ export default function LoginForm() {
           {state?.error ? (
             <div className="mb-6">
               <AuthAlert type="error" message={state.error} />
+            </div>
+          ) : null}
+
+          {resetSuccess ? (
+            <div className="mb-6">
+              <AuthAlert
+                type="success"
+                message="パスワードを再設定しました。新しいパスワードでログインしてください。"
+              />
             </div>
           ) : null}
 
@@ -66,6 +76,15 @@ export default function LoginForm() {
               error={state?.fieldErrors?.password}
               required
             />
+
+            <p className="text-right text-sm">
+              <Link
+                href="/forgot-password"
+                className="text-[var(--gold-dark)] underline-offset-4 transition-colors hover:underline"
+              >
+                パスワードを忘れた方
+              </Link>
+            </p>
 
             <button
               type="submit"

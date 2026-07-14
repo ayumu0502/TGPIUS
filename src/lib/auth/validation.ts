@@ -63,6 +63,49 @@ export function validateLoginInput(input: {
   return null;
 }
 
+export function validateEmailOnlyInput(input: {
+  email: string;
+}): AuthFormState | null {
+  const fieldErrors: NonNullable<AuthFormState["fieldErrors"]> = {};
+
+  if (!input.email.trim()) {
+    fieldErrors.email = "メールアドレスを入力してください";
+  } else if (!EMAIL_PATTERN.test(input.email.trim())) {
+    fieldErrors.email = "有効なメールアドレスを入力してください";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  return null;
+}
+
+export function validatePasswordResetInput(input: {
+  password: string;
+  passwordConfirm: string;
+}): AuthFormState | null {
+  const fieldErrors: NonNullable<AuthFormState["fieldErrors"]> = {};
+
+  if (!input.password) {
+    fieldErrors.password = "パスワードを入力してください";
+  } else if (input.password.length < 8) {
+    fieldErrors.password = "パスワードは8文字以上で入力してください";
+  }
+
+  if (!input.passwordConfirm) {
+    fieldErrors.password = "確認用パスワードを入力してください";
+  } else if (input.password !== input.passwordConfirm) {
+    fieldErrors.password = "パスワードが一致しません";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  return null;
+}
+
 export function parseAccountType(value: string): AccountType | null {
   return isAccountType(value) ? value : null;
 }

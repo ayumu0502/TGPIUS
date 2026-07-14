@@ -12,10 +12,13 @@ import {
 } from "@/lib/auth/routes";
 import {
   parseAccountType,
+  validateEmailOnlyInput,
   validateLoginInput,
+  validatePasswordResetInput,
   validateRegistrationInput,
 } from "@/lib/auth/validation";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/stripe/plans";
 import type { AccountType, AuthFormState, Profile } from "@/types/auth";
 
 async function saveProfile(
@@ -193,6 +196,62 @@ export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export async function requestPasswordReset(
+  _prevState: AuthFormState | null,
+  formData: FormData
+): Promise<AuthFormState> {
+  const email = String(formData.get("email") ?? "").trim();
+
+  const validationError = validateEmailOnlyInput({ email });
+  if (validationError) {
+    return validationError;
+  }
+
+  const supabase = await createClient();
+  const appUrl = getAppUrl().replace(/\/$/, "");
+  const redirectTo = `${appUrl}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
+
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  return {
+    success:
+      "パスワード再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。",
+  };
+}
+
+export async function resetPassword(
+  _prevState: AuthFormState | null,
+  formData: FormData
+): Promise<AuthFormState> {
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+
+  const validationError = validatePasswordResetInput({ password, passwordConfirm });
+  if (validationError) {
+    return validationError;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "リンクが無効または期限切れです。もう一度パスワード再設定をお試しください。",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { error: translateAuthError(error.message) };
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?reset=success");
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {

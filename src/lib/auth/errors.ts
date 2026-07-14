@@ -29,6 +29,21 @@ export function translateAuthError(message: string): string {
     return "リクエストが多すぎます。しばらくしてから再度お試しください";
   }
 
+  if (
+    normalized.includes("auth session missing") ||
+    normalized.includes("jwt expired") ||
+    normalized.includes("invalid refresh token") ||
+    normalized.includes("otp_expired") ||
+    normalized.includes("email link is invalid") ||
+    normalized.includes("token has expired")
+  ) {
+    return "リンクが無効または期限切れです。もう一度パスワード再設定をお試しください";
+  }
+
+  if (normalized.includes("same password")) {
+    return "現在と異なるパスワードを設定してください";
+  }
+
   if (normalized.includes("network")) {
     return "ネットワークエラーが発生しました。接続を確認してください";
   }
