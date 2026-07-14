@@ -11,7 +11,11 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   const profile = await requireAdmin();
 
   return (
-    <AdminDashboardLayout name={profile.name} email={profile.email}>
+    <AdminDashboardLayout
+      name={profile.name}
+      email={profile.email}
+      accountType={profile.account_type}
+    >
       <AdminNav />
       {children}
     </AdminDashboardLayout>

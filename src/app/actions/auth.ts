@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { translateAuthError } from "@/lib/auth/errors";
+import { resolvePostLoginRedirect } from "@/lib/auth/admin-access";
 import {
   getAccountTypeFromMetadata,
-  getAthleteEntryPath,
   getDashboardPath,
 } from "@/lib/auth/routes";
 import {
@@ -149,28 +149,19 @@ export async function login(
     };
   }
 
-  if (
-    redirectTo.startsWith(`/${accountType}/`) &&
-    !redirectTo.startsWith("//")
-  ) {
-    redirect(redirectTo);
-  }
-
   const { data: profileRow } = await supabase
     .from("profiles")
     .select("is_admin, athlete_review_status")
     .eq("id", data.user.id)
     .single();
 
-  if (profileRow?.is_admin) {
-    redirect("/admin/dashboard");
-  }
-
-  if (accountType === "athlete") {
-    redirect(getAthleteEntryPath(profileRow?.athlete_review_status));
-  }
-
-  redirect(getDashboardPath(accountType));
+  redirect(
+    resolvePostLoginRedirect(
+      redirectTo,
+      accountType,
+      profileRow?.athlete_review_status
+    )
+  );
 }
 
 export async function logout() {

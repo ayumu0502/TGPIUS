@@ -24,6 +24,7 @@ type PremiumLayoutProps = {
     name: string;
     accountType: AccountType;
     avatarUrl?: string | null;
+    isAdmin?: boolean;
   };
   activeNav?: PremiumNavId;
   pointBalance?: number;
@@ -52,8 +53,13 @@ export default function PremiumLayout({
   const notificationCount = notificationCountProp ?? unreadCount;
   const messageUnreadCount = messageUnreadCountProp ?? 0;
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const sidebarItems = filterNavForRole(SIDEBAR_NAV_ITEMS, currentUser.accountType);
-  const topItems = filterNavForRole(TOP_NAV_ITEMS, currentUser.accountType);
+  const isAdmin = currentUser.isAdmin === true;
+  const sidebarItems = filterNavForRole(
+    SIDEBAR_NAV_ITEMS,
+    currentUser.accountType,
+    isAdmin
+  );
+  const topItems = filterNavForRole(TOP_NAV_ITEMS, currentUser.accountType, isAdmin);
 
   const sections = [...new Set(sidebarItems.map((i) => i.section).filter(Boolean))];
 
@@ -137,6 +143,19 @@ export default function PremiumLayout({
           ))}
         </nav>
 
+        {isAdmin ? (
+          <div className="border-t border-[var(--card-border)] px-3 py-3">
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-3 rounded-lg border border-[rgba(197,160,89,0.35)] bg-[rgba(197,160,89,0.08)] px-3 py-2.5 text-sm font-medium text-[var(--gold-dark)] transition-colors hover:bg-[rgba(197,160,89,0.14)]"
+            >
+              <NavIcon name="user" className="h-5 w-5 shrink-0" />
+              <span>管理画面</span>
+            </Link>
+          </div>
+        ) : null}
+
         <div className="border-t border-[var(--card-border)] p-4">
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--sidebar-hover)] p-4">
             <p className="text-xs leading-relaxed text-[var(--text-muted)]">
@@ -186,6 +205,14 @@ export default function PremiumLayout({
                   </Link>
                 );
               })}
+              {isAdmin ? (
+                <Link
+                  href="/admin/dashboard"
+                  className="px-4 py-4 text-sm font-medium text-[var(--gold-dark)] transition-colors hover:text-[var(--gold)]"
+                >
+                  管理画面
+                </Link>
+              ) : null}
             </nav>
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3">

@@ -3,6 +3,7 @@ import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import { listFanSubscriptions } from "@/app/actions/fanclub";
 import FanSubscriptionsList from "@/components/fanclub/FanSubscriptionsList";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -15,11 +16,8 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function FanSubscriptionsPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const [subscriptions, layoutCounts] = await Promise.all([
     listFanSubscriptions(),
@@ -32,6 +30,7 @@ export default async function FanSubscriptionsPage() {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="subscriptions"
       pointBalance={layoutCounts.pointBalance}

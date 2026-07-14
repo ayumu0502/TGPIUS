@@ -155,9 +155,13 @@ export function getDashboardPath(accountType: AccountType): string {
 
 export function filterNavForRole(
   items: NavItem[],
-  accountType: AccountType
+  accountType: AccountType,
+  isAdmin = false
 ): NavItem[] {
   return items.filter(
-    (item) => !item.roles || item.roles.includes(accountType)
+    (item) =>
+      !item.roles ||
+      item.roles.includes(accountType) ||
+      (isAdmin && item.roles.includes("fan"))
   );
 }

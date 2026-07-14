@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import SponsorDashboardContent from "@/components/dashboard/SponsorDashboardContent";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
@@ -13,15 +14,8 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function SponsorDashboardPage() {
-  const profile = await getCurrentProfile();
-
-  if (!profile) {
-    redirect("/login");
-  }
-
-  if (profile.account_type !== "sponsor") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "sponsor");
 
   const layoutCounts = await getPremiumLayoutCounts(profile.account_type);
 

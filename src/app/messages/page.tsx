@@ -36,6 +36,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="messages"
       pointBalance={layoutCounts.pointBalance}

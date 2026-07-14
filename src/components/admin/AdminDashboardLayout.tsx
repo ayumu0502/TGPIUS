@@ -1,27 +1,39 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import PageEnter from "@/components/ui/PageEnter";
 import AppFooter from "@/components/layout/AppFooter";
 import { AuthLogo } from "@/components/auth/AuthBackground";
-import type { ReactNode } from "react";
+import { getDashboardPath } from "@/lib/auth/routes";
+import type { AccountType } from "@/types/auth";
 
 type AdminDashboardLayoutProps = {
   name: string;
   email: string;
+  accountType: AccountType;
   children: ReactNode;
 };
 
 export default function AdminDashboardLayout({
   name,
   email,
+  accountType,
   children,
 }: AdminDashboardLayoutProps) {
+  const userAppHref = getDashboardPath(accountType);
+
   return (
     <div className="premium-app relative flex min-h-screen flex-col bg-[#f7f8fa]">
       <header className="premium-shell-header sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <AuthLogo theme="light" />
           <div className="flex items-center gap-3 sm:gap-4">
+            <Link
+              href={userAppHref}
+              className="rounded-full border border-[var(--gold)] px-4 py-2 text-xs font-medium text-[var(--gold-dark)] transition-colors duration-200 hover:bg-[rgba(197,160,89,0.1)] sm:px-5 sm:py-2.5 sm:text-sm"
+            >
+              一般画面へ戻る
+            </Link>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-[var(--text-primary)]">{name}</p>
               <p className="text-xs text-[var(--text-muted)]">管理者</p>
@@ -51,12 +63,18 @@ export default function AdminDashboardLayout({
             </p>
           </div>
           {children}
-          <div className="mt-10 text-center">
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href={userAppHref}
+              className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium"
+            >
+              一般画面へ戻る
+            </Link>
             <Link
               href="/"
               className="text-sm text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--gold-dark)] hover:underline"
             >
-              トップページに戻る
+              トップページ
             </Link>
           </div>
         </div>

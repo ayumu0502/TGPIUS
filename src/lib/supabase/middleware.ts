@@ -6,6 +6,7 @@ import {
   getDashboardPath,
   getDashboardPrefix,
 } from "@/lib/auth/routes";
+import { isAdminUser } from "@/lib/auth/admin-access";
 import { isAthleteGatedPath } from "@/lib/athlete/status";
 import type { AthleteReviewStatus } from "@/types/athlete-application";
 
@@ -105,9 +106,7 @@ export async function updateSession(request: NextRequest) {
 
     if (isAuthPage) {
       const redirectUrl = request.nextUrl.clone();
-      if (isAdmin) {
-        redirectUrl.pathname = "/admin/dashboard";
-      } else if (resolvedAccountType) {
+      if (resolvedAccountType) {
         redirectUrl.pathname =
           resolvedAccountType === "athlete"
             ? getAthleteEntryPath(
@@ -130,11 +129,15 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    if (requiredRole && resolvedAccountType && requiredRole !== resolvedAccountType) {
+    if (
+      requiredRole &&
+      resolvedAccountType &&
+      requiredRole !== resolvedAccountType &&
+      !isAdminUser(profile)
+    ) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = isAdmin
-        ? "/admin/dashboard"
-        : resolvedAccountType === "athlete"
+      redirectUrl.pathname =
+        resolvedAccountType === "athlete"
           ? getAthleteEntryPath(
               profile?.athlete_review_status as AthleteReviewStatus | null | undefined
             )

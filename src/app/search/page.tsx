@@ -139,6 +139,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="search"
       pointBalance={layoutCounts.pointBalance}

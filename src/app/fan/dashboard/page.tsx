@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { createPrivatePageMetadata } from "@/lib/seo/metadata";
-import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { toPremiumCurrentUser } from "@/lib/auth/admin-access";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import {
   getFanGiftStats,
   getSentGifts,
@@ -25,15 +26,8 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function FanDashboardPage() {
-  const profile = await getCurrentProfile();
-
-  if (!profile) {
-    redirect("/login");
-  }
-
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const [stats, sentGifts, athletes, followingAthletes, layoutCounts, rankingAthletes, nextEvent, upcomingEvents] =
     await Promise.all([
@@ -49,12 +43,7 @@ export default async function FanDashboardPage() {
 
   return (
     <PremiumLayout
-      currentUser={{
-        id: profile.id,
-        name: profile.name,
-        accountType: profile.account_type,
-        avatarUrl: undefined,
-      }}
+      currentUser={toPremiumCurrentUser(profile)}
       activeNav="dashboard"
       pointBalance={stats.pointBalance}
       notificationCount={layoutCounts.notificationCount}

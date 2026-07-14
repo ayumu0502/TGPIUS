@@ -3,6 +3,7 @@ import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import { getPointBalance } from "@/app/actions/gifts";
 import { AuthAlert } from "@/components/auth/AuthInput";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
@@ -23,11 +24,8 @@ type SuccessPageProps = {
 export default async function PointPurchaseSuccessPage({
   searchParams,
 }: SuccessPageProps) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const { session_id: sessionId } = await searchParams;
   let pointAmount: number | null = null;
@@ -52,6 +50,7 @@ export default async function PointPurchaseSuccessPage({
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="points"
       pointBalance={pointBalance}

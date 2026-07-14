@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAthleteForGift, getPointBalance } from "@/app/actions/gifts";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import GiftSendForm from "@/components/gifts/GiftSendForm";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
@@ -25,11 +26,8 @@ export async function generateMetadata({
 }
 
 export default async function GiftSendPage({ params }: GiftSendPageProps) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const { athleteId } = await params;
   const [athlete, pointBalance, layoutCounts] = await Promise.all([
@@ -45,6 +43,7 @@ export default async function GiftSendPage({ params }: GiftSendPageProps) {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="gifts"
       pointBalance={pointBalance}

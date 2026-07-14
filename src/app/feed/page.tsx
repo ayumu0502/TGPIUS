@@ -31,6 +31,7 @@ export default async function FeedPage() {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="feed"
       pointBalance={layoutCounts.pointBalance}

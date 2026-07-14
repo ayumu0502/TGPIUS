@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import {
   createSupporterCheckout,
   createSupporterPortal,
@@ -25,11 +26,8 @@ type SuccessPageProps = {
 };
 
 export default async function SupporterSuccessPage({ searchParams }: SuccessPageProps) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const { session_id: sessionId } = await searchParams;
   let synced = false;

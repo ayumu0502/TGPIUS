@@ -3,6 +3,7 @@ import { createPrivatePageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import { AuthAlert } from "@/components/auth/AuthInput";
 import PremiumLayout from "@/components/layout/premium/PremiumLayout";
 import { getPremiumLayoutCounts } from "@/lib/premium/layout-counts";
@@ -14,11 +15,8 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function PointPurchaseCancelPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const layoutCounts = await getPremiumLayoutCounts(profile.account_type);
 
@@ -28,6 +26,7 @@ export default async function PointPurchaseCancelPage() {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="points"
       pointBalance={layoutCounts.pointBalance}

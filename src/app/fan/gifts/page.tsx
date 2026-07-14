@@ -8,6 +8,7 @@ import {
   listAthletes,
 } from "@/app/actions/gifts";
 import { getCurrentProfile } from "@/app/actions/auth";
+import { ensureAccountType, ensureLoggedIn } from "@/lib/auth/page-guards";
 import GiftAthleteList from "@/components/gifts/GiftAthleteList";
 import GiftHistoryList from "@/components/gifts/GiftHistoryList";
 import { DashboardSection, StatCard } from "@/components/dashboard/DashboardUI";
@@ -22,11 +23,8 @@ export const metadata: Metadata = createPrivatePageMetadata({
 });
 
 export default async function FanGiftsPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.account_type !== "fan") {
-    redirect(`/${profile.account_type}/dashboard`);
-  }
+  const profile = ensureLoggedIn(await getCurrentProfile());
+  ensureAccountType(profile, "fan");
 
   const [stats, sentGifts, athletes, layoutCounts] = await Promise.all([
     getFanGiftStats(),
@@ -41,6 +39,7 @@ export default async function FanGiftsPage() {
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="gifts"
       pointBalance={stats.pointBalance}

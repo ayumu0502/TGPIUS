@@ -74,6 +74,7 @@ export default async function RankingsPage({ searchParams }: RankingsPageProps) 
         id: profile.id,
         name: profile.name,
         accountType: profile.account_type,
+        isAdmin: Boolean(profile.is_admin),
       }}
       activeNav="rankings"
       pointBalance={layoutCounts.pointBalance}
